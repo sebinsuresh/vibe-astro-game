@@ -25,7 +25,7 @@ Open `index.html` in any modern browser (or just open this repo on
 | **A / D** | Turn left / right (auto-banks) |
 | **R / F** | Ascend / descend |
 | **SHIFT** | Boost |
-| **MOUSE** | Orbit camera (click the page to lock) |
+| **MOUSE** | Steer ship · look up/down (click the page to lock) |
 | **WHEEL** | Zoom camera in / out |
 | **ESC** | Release mouse |
 
@@ -37,9 +37,10 @@ Fly through the foggy low-poly city and collect all **25 rings**.
   and solid orange rocket flames with a spark trail
 - Foggy, high-key pastel city: ~180 procedurally generated towers with lit
   window textures, rooftop clutter, antenna spires, and a central flight corridor
-- Flight model: heading-relative thrust, yaw turns with bank, vertical control,
-  boost, drag and speed caps
-- Orbiting chase camera with pointer-lock, zoom, and building collision
+- Flight model: mouse or A/D steering, heading-relative thrust, banked turns,
+  vertical control, boost, drag and speed caps
+- Trailing chase camera that follows the ship's heading (pointer-lock, zoom,
+  building collision) — W always flies you "into the screen"
 - Building + ground collision, ring collection with HUD (speed / altitude / rings)
 
 ## Repo layout
@@ -54,8 +55,8 @@ js/
   physics.js            # flight model + collision
   effects.js            # flame / glow / spark VFX updates
   rings.js              # collectible rings
-  input.js              # keyboard, pointer-lock mouse orbit, wheel zoom
-  camera.js             # orbiting chase camera
+  input.js              # keyboard + pointer-lock mouse steering, wheel zoom
+  camera.js             # trailing chase camera
   hud.js                # speed / altitude / ring HUD
   main.js               # game loop + resize
 lib/three.min.js        # vendored three.js r149

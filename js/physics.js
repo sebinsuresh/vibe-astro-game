@@ -3,11 +3,13 @@
 // physics.js — flight state, the per-frame movement model, and collision.
 //
 // Flight model (heading-relative):
+//   MOUSE / A D  steer the ship (yaw) left/right (auto-banks into the turn)
 //   W/S  thrust forward/back along the player's nose
-//   A/D  yaw left/right (auto-banks into the turn)
 //   R/F  ascend/descend
 //   SHIFT boost (more thrust, faster turns, higher speed cap)
 // Drag + speed caps keep it feeling floaty but controllable.
+// The trailing chase camera follows the ship's heading, so "forward" (W)
+// always points away from the camera.
 // ---------------------------------------------------------------------------
 
 const vel = new THREE.Vector3();

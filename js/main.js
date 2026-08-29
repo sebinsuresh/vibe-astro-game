@@ -5,16 +5,12 @@
 // ---------------------------------------------------------------------------
 
 const clock = new THREE.Clock();
-const fwd = new THREE.Vector3();
 let t = 0;
 
 function animate(){
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
   t += dt;
-
-  // camera basis (forward = where camera looks, horizontal)
-  fwd.set(-Math.sin(camYaw), 0, -Math.cos(camYaw));
 
   // flight
   const flight = updateFlight(dt, keys);

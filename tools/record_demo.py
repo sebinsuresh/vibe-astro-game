@@ -78,7 +78,7 @@ evaluate("""(function(){
   document.getElementById('overlay').style.display='none';
   document.getElementById('paused').style.display='none';
   astro.position.set(0,14,80); vel.set(0,0,0);
-  yaw=0; camYaw=0; camPitch=0.30; camDist=9;
+  yaw=0; camHeading=0; camPitch=0.34; camDist=10;
   return 'ok';
 })()""")
 

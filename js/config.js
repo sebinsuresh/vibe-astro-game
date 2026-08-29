@@ -32,19 +32,21 @@ const WORLD_Y_MAX = 280;
 const RING_COUNT = 25;
 const RING_PICKUP_DIST_SQ = 7;     // squared distance for ring collection
 
-// ---- camera ----
-const CAM_YAW_SPEED   = 0.0026;
-const CAM_PITCH_SPEED = 0.0022;
-const CAM_PITCH_MIN   = 0.06;
-const CAM_PITCH_MAX   = 1.15;
-const CAM_DIST_MIN    = 4;
-const CAM_DIST_MAX    = 14;
-const CAM_DIST_WHEEL  = 0.004;
-const CAM_PITCH_DEFAULT = 0.30;
-const CAM_DIST_DEFAULT  = 9;
-const CAM_LOOK_AHEAD = 1.5;        // look-at height above player
-const CAM_LOOK_UP    = 1.1;        // camera base lift
-const CAM_FOLLOW     = 0.0001;     // camera lerp base (1 - base^dt)
+// ---- camera (trailing chase cam) ----
+const CAM_TURN_SPEED   = 0.0042;   // mouse X -> steer the ship (rad / px)
+const CAM_PITCH_SPEED  = 0.0024;   // mouse Y -> look up/down (rad / px)
+const CAM_PITCH_MIN    = 0.10;
+const CAM_PITCH_MAX    = 0.95;
+const CAM_PITCH_DEFAULT = 0.34;    // elevation: behind + slightly above
+const CAM_DIST_MIN     = 5;
+const CAM_DIST_MAX     = 16;
+const CAM_DIST_WHEEL   = 0.005;
+const CAM_DIST_DEFAULT = 10;
+const CAM_LOOK_UP      = 1.2;      // camera base lift above player
+const CAM_LOOK_AHEAD_H = 3.0;      // look-at point ahead along heading
+const CAM_LOOK_UP_TGT  = 1.4;      // look-at height above player
+const CAM_FOLLOW       = 0.0006;   // camera position lerp base (1 - base^dt)
+const CAM_HEADING_LAG  = 0.014;    // camera heading lerp base (trail behind yaw)
 
 // ---- effects ----
 const SPARKS = 70;                 // spark-trail particle pool
