@@ -45,7 +45,19 @@ Fly through the foggy low-poly city and collect all **25 rings**.
 ## Repo layout
 
 ```
-index.html              # the game (single file)
+index.html              # loads the game (HTML/CSS + script tags only)
+js/
+  config.js             # all tuning constants (colours, physics, camera, ...)
+  scene.js              # renderer, scene, fog, lights, ground
+  city.js               # procedural city + window textures
+  player.js             # chibi astro-boy, flames, glow, spark trail
+  physics.js            # flight model + collision
+  effects.js            # flame / glow / spark VFX updates
+  rings.js              # collectible rings
+  input.js              # keyboard, pointer-lock mouse orbit, wheel zoom
+  camera.js             # orbiting chase camera
+  hud.js                # speed / altitude / ring HUD
+  main.js               # game loop + resize
 lib/three.min.js        # vendored three.js r149
 docs/screenshots/       # screenshots used in this README
 reference/
@@ -56,6 +68,11 @@ tools/
   record_demo.py        # scripted-demo screencast recorder (dev/test only)
 .venv/                  # Python venv for the tools (gitignored)
 ```
+
+The scripts are plain (non-module) classic scripts loaded in dependency
+order, so they share a single global scope — this keeps the game trivially
+hostable as static files (no bundler, no CORS/module restrictions) while
+still being cleanly separated by concern.
 
 ## Development / testing notes
 
