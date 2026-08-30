@@ -70,8 +70,28 @@ class Page:
             return {"error": r["exceptionDetails"].get("exception", {}).get("description", str(r["exceptionDetails"]))}
         return r.get("result", {}).get("value")
 
-    def screenshot(self, path):
-        r = self.send("Page.captureScreenshot", format="png")
+    def console_since(self, drain=True):
+        """Collect buffered Runtime console events (call after Runtime.enable)."""
+        import time as _t
+        evs = []
+        while True:
+            try:
+                self.ws.settimeout(0.2)
+                m = json.loads(self.ws.recv())
+            except Exception:
+                break
+            finally:
+                self.ws.settimeout(30)
+            if m.get("method") == "Runtime.consoleAPICalled":
+                args = m.get("params", {}).get("args", [])
+                evs.append(" ".join(str(a.get("value", a.get("description", ""))) for a in args))
+            elif m.get("method") == "Runtime.exceptionThrown":
+                d = m.get("params", {}).get("exceptionDetails", {})
+                evs.append("EXC: " + str(d.get("exception", {}).get("description", d)))
+        return evs
+
+    def screenshot(self, path, fmt="png", quality=80):
+        r = self.send("Page.captureScreenshot", format=fmt, quality=quality)
         with open(path, "wb") as f:
             f.write(base64.b64decode(r["data"]))
         return path
