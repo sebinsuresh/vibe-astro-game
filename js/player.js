@@ -15,21 +15,29 @@ torso.position.y=0.62; tilt.add(torso);
 const chest=new THREE.Mesh(new THREE.SphereGeometry(0.27,12,10), mat(MAROON));
 chest.position.set(0,0.72,0.05); chest.scale.set(1.05,0.8,0.8); tilt.add(chest);
 
-// head
+// head — the face (eyes/mouth) points along the nose (local -Z, the travel
+// direction), so the trailing chase camera (behind/above, +Z) reads the
+// character's hair and spikes, while the face looks out into the screen.
 const head=new THREE.Group(); head.position.y=1.18; tilt.add(head);
 const face=new THREE.Mesh(new THREE.SphereGeometry(0.42,20,16), mat(CREAM)); head.add(face);
-// hair dome (back/top)
-const hair=new THREE.Mesh(new THREE.SphereGeometry(0.445,20,14,0,Math.PI*2,0,Math.PI*0.62), mat(BLACK));
-hair.rotation.x=-0.5; hair.position.y=0.04; head.add(hair);
-// signature spikes — big, pointing up/back (read from behind)
+// hair — covers the TOP + BACK of the head so the back reads as a dark hair
+// dome (not a face!) from the trailing camera, leaving the face open on the
+// front (-Z). Tilted toward the back (+Z); cap reaches ~125° down the back,
+// hairline crosses the front at ~60° (eyes at ~87° stay clear).
+const hair=new THREE.Mesh(new THREE.SphereGeometry(0.445,20,14,0,Math.PI*2,0,Math.PI*0.52), mat(BLACK));
+hair.rotation.x=0.55; hair.position.y=0.05; head.add(hair);
+// signature spikes — on the BACK-top of the head, pointing up/back (read from behind)
 const spikeGeo=new THREE.ConeGeometry(0.115,0.55,8);
-const s1=new THREE.Mesh(spikeGeo,mat(BLACK)); s1.position.set(0,0.42,-0.08); s1.rotation.x=0.5; head.add(s1);
-const s2=new THREE.Mesh(spikeGeo,mat(BLACK)); s2.position.set(0.2,0.36,0.08); s2.rotation.set(0.3,0,-0.55); head.add(s2);
-const s3=new THREE.Mesh(spikeGeo,mat(BLACK)); s3.position.set(-0.2,0.36,0.08); s3.rotation.set(0.3,0,0.55); head.add(s3);
+const s1=new THREE.Mesh(spikeGeo,mat(BLACK)); s1.position.set(0,0.36,0.16); s1.rotation.x=0.5; head.add(s1);
+const s2=new THREE.Mesh(spikeGeo,mat(BLACK)); s2.position.set(0.2,0.30,0.10); s2.rotation.set(0.4,0,-0.5); head.add(s2);
+const s3=new THREE.Mesh(spikeGeo,mat(BLACK)); s3.position.set(-0.2,0.30,0.10); s3.rotation.set(0.4,0,0.5); head.add(s3);
 // eyes
 const eyeGeo=new THREE.SphereGeometry(0.055,10,8);
 const e1=new THREE.Mesh(eyeGeo,mat(BLACK)); e1.position.set(0.15,0.02,-0.37); head.add(e1);
 const e2=new THREE.Mesh(eyeGeo,mat(BLACK)); e2.position.set(-0.15,0.02,-0.37); head.add(e2);
+// mouth — small dark line so the face side is unmistakable
+const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.035,0.02), mat(BLACK));
+mouth.position.set(0,-0.13,-0.40); head.add(mouth);
 
 // arms — spread for flight
 function arm(side){

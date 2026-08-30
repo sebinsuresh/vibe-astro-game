@@ -47,6 +47,15 @@ const CAM_LOOK_AHEAD_H = 3.0;      // look-at point ahead along heading
 const CAM_LOOK_UP_TGT  = 1.4;      // look-at height above player
 const CAM_FOLLOW       = 0.0006;   // camera position lerp base (1 - base^dt)
 const CAM_HEADING_LAG  = 0.014;    // camera heading lerp base (trail behind yaw)
+const CAM_SPEED_DZ     = 0.10;     // extra camera distance per m/s (pull back at speed)
+const CAM_SPEED_DZ_MAX = 6;        // cap on that extra distance
+const CAM_FOV_BASE     = 65;       // base field of view
+const CAM_FOV_SPEED    = 0.35;     // extra degrees per m/s (sense of speed)
+const CAM_FOV_MAX      = 82;       // cap on the widened fov
+
+// ---- body pose (lean) ----
+const LEAN       = 0.34;   // forward pitch at full cruise speed (rad, ≈19°)
+const BOOST_LEAN = 0.60;   // forward pitch at full cruise speed while boosting (≈34°)
 
 // ---- effects ----
 const SPARKS = 70;                 // spark-trail particle pool

@@ -27,6 +27,7 @@ Open `index.html` in any modern browser (or just open this repo on
 | **SHIFT** | Boost |
 | **MOUSE** | Steer ship · look up/down (click the page to lock) |
 | **WHEEL** | Zoom camera in / out |
+| **T** | Toggle FWD / BACK orientation markers (dev aid) |
 | **ESC** | Release mouse |
 
 Fly through the foggy low-poly city and collect all **25 rings**.
@@ -39,8 +40,12 @@ Fly through the foggy low-poly city and collect all **25 rings**.
   window textures, rooftop clutter, antenna spires, and a central flight corridor
 - Flight model: mouse or A/D steering, heading-relative thrust, banked turns,
   vertical control, boost, drag and speed caps
+- Velocity-based body pose: leans forward with speed (extra while boosting),
+  leans back when flying backwards, subtle nose-up/down on climb/descend,
+  and banks into turns — matching the reference's diving feel
 - Trailing chase camera that follows the ship's heading (pointer-lock, zoom,
-  building collision) — W always flies you "into the screen"
+  building collision) — W always flies you "into the screen"; it pulls back
+  and the FOV widens slightly with speed for a stronger sense of velocity
 - Building + ground collision, ring collection with HUD (speed / altitude / rings)
 
 ## Repo layout
@@ -52,11 +57,13 @@ js/
   scene.js              # renderer, scene, fog, lights, ground
   city.js               # procedural city + window textures
   player.js             # chibi astro-boy, flames, glow, spark trail
+  pose.js               # per-frame body pose (forward lean, bank, climb tilt)
+  marker.js             # FWD / BACK orientation markers (T to toggle, dev aid)
   physics.js            # flight model + collision
   effects.js            # flame / glow / spark VFX updates
   rings.js              # collectible rings
   input.js              # keyboard + pointer-lock mouse steering, wheel zoom
-  camera.js             # trailing chase camera
+  camera.js             # trailing chase camera (speed pullback + FOV warp)
   hud.js                # speed / altitude / ring HUD
   main.js               # game loop + resize
 lib/three.min.js        # vendored three.js r149

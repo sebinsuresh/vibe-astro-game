@@ -18,6 +18,29 @@ def find_page(substr, tid=None):
             return t
     return None
 
+def close_tab(tid):
+    # newer Chrome reads the id from the PATH, not the query string
+    try:
+        with urllib.request.urlopen(CDP + "/json/close/" + tid, timeout=6) as r:
+            r.read()
+            return True
+    except Exception:
+        return False
+
+def purge(substr="index.html"):
+    """Close every page whose url contains substr. Returns count closed."""
+    n = 0
+    for _ in range(6):
+        ps = [t for t in targets() if t.get("type") == "page" and substr in t.get("url", "")]
+        if not ps:
+            break
+        for t in ps:
+            if close_tab(t["id"]):
+                n += 1
+        import time as _t
+        _t.sleep(0.8)
+    return n
+
 class Page:
     def __init__(self, url_substr, tid=None):
         t = find_page(url_substr, tid)

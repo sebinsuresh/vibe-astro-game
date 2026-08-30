@@ -76,10 +76,8 @@ function updateFlight(dt, keys){
   vel.z += hz*az*accel*dt;
   vel.y += ay * VERT * (boost?1.6:1) * dt;
 
-  // yaw turn + bank into the turn
+  // yaw turn (bank + forward-lean pose live in pose.js)
   yaw += turn * (boost?2.6:2.0) * dt;
-  const targetRoll = turn * -0.55; // D = right bank
-  tilt.rotation.z = THREE.MathUtils.lerp(tilt.rotation.z, targetRoll, 0.1);
 
   // drag + speed cap
   vel.multiplyScalar(Math.pow(DRAG_BASE, dt));
@@ -94,10 +92,10 @@ function updateFlight(dt, keys){
   astro.position.y = Math.max(WORLD_Y_MIN, Math.min(WORLD_Y_MAX, astro.position.y));
   collide(astro.position);
 
-  // orient: nose is authoritative; slight pitch from vertical speed
+  // orient: nose is authoritative; body pitch / bank pose in pose.js
   astro.rotation.y = yaw;
-  tilt.rotation.x = THREE.MathUtils.lerp(tilt.rotation.x,
-    Math.max(-0.45, Math.min(0.6, vel.y*0.035)), 0.12);
+  const sp = vel.length();
+  applyPose(dt, { thrust, speed: sp, boost });
 
-  return { thrust, speed: vel.length(), boost };
+  return { thrust, speed: sp, boost };
 }

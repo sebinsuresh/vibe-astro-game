@@ -15,9 +15,10 @@ function animate(){
   // flight
   const flight = updateFlight(dt, keys);
 
-  // VFX
+  // VFX + pose markers
   updateFlames(t, flight.speed, flight.thrust, flight.boost);
   updateSparks(dt, flight.speed, flight.thrust);
+  updateMarkers();
 
   // rings + camera + HUD
   const p = astro.position;
