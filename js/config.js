@@ -20,13 +20,13 @@ const BLACK  = 0x181818;
 const RED    = 0xc23344;
 
 // ---- flight physics ----
-const W_B   = 16;   // normal forward thrust acceleration
-const BOOST = 30;   // boosted thrust acceleration
-const VERT  = 12;   // vertical (R/F) acceleration
+const W_B   = 22;   // normal forward thrust acceleration
+const BOOST = 42;   // boosted thrust acceleration
+const VERT  = 15;   // vertical (R/F) acceleration
 const RADIUS = 0.7; // player collision radius
-const DRAG_BASE = 0.35;            // vel *= DRAG_BASE^dt  (~0.66/s retention)
-const MAX_SPEED_CRUISE = 17;
-const MAX_SPEED_BOOST  = 34;
+const DRAG_BASE = 0.45;            // vel *= DRAG_BASE^dt  (~0.73/s retention)
+const MAX_SPEED_CRUISE = 21;
+const MAX_SPEED_BOOST  = 42;
 const WORLD_XZ   = 380;            // hard world bounds (x/z)
 const WORLD_Y_MIN = 1.6;
 const WORLD_Y_MAX = 280;
@@ -48,7 +48,7 @@ const CAM_DIST_DEFAULT = 10;
 const CAM_LOOK_UP      = 1.2;      // camera base lift above player
 const CAM_LOOK_AHEAD_H = 3.0;      // look-at point ahead along heading
 const CAM_LOOK_UP_TGT  = 1.4;      // look-at height above player
-const CAM_FOLLOW       = 0.0006;   // camera position lerp base (1 - base^dt)
+const CAM_FOLLOW       = 0.00025;  // camera position lerp base (1 - base^dt); tighter at the new speeds
 const CAM_HEADING_LAG  = 0.014;    // camera heading lerp base (trail behind yaw)
 const CAM_LAG_MAX      = 1.57;     // clamp on heading lag (rad): camera never trails past ~90°
 const CAM_SPEED_DZ     = 0.10;     // extra camera distance per m/s (pull back at speed)
@@ -65,12 +65,12 @@ const DIVE_BOOST   = 1.58; // rocket-dive pose: pitch at full boost (≈90° —
 const FLAME_HOLD   = 1.0;  // how strongly the flames stay vertical (1 = fully)
 
 // ---- control feel ----
-const ALIGN_POW    = 0.005;  // turn assist: velocity-to-nose lerp base
-const BRAKE_POW    = 0.50;   // coast brake: extra drag base when throttle is off
+const ALIGN_POW    = 0.0015; // turn assist: velocity-to-nose lerp base (snappier: flies where you point)
+const BRAKE_POW    = 0.45;   // coast brake: extra drag base when throttle is off
 const STEER_GAIN   = 0.014;  // smooth steering: yaw-rate gained per px of mouse
-const STEER_EASE   = 0.0004; // smooth steering: yaw-rate easing base (per frame)
-const KEY_TURN     = 2.0;    // key turn rate target (rad/s)
-const KEY_TURN_BOOST = 2.6;  // … while boosting
+const STEER_EASE   = 0.0001; // smooth steering: yaw-rate easing base (per frame; faster settle = snappier)
+const KEY_TURN     = 2.4;    // key turn rate target (rad/s)
+const KEY_TURN_BOOST = 3.0;  // … while boosting
 
 // ---- camera feel ----
 const CAM_BANK     = 0.7;    // camera bank factor (share of character roll)
