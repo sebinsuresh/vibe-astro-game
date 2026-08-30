@@ -32,7 +32,7 @@ addEventListener('mousemove',e=>{
   } else {
     yaw      -= e.movementX*CAM_TURN_SPEED;   // legacy: instant
   }
-  camPitch -= e.movementY*CAM_PITCH_SPEED;  // mouse up   -> look up
+  camPitch += e.movementY*CAM_PITCH_SPEED;  // mouse up   -> look up (inverted: mouse down -> camera dips)
   camPitch = Math.max(CAM_PITCH_MIN, Math.min(CAM_PITCH_MAX, camPitch));
 });
 addEventListener('wheel',e=>{
