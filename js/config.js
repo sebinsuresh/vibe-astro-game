@@ -65,6 +65,9 @@ const DIVE_BOOST   = 1.58; // rocket-dive pose: pitch at full boost (≈90° —
 const FLAME_HOLD   = 1.0;  // how strongly the flames stay vertical (1 = fully)
 
 // ---- control feel ----
+const STRAFE_MAX   = 14;    // A/D lateral speed target (m/s), unboosted
+const STRAFE_MAX_BOOST = 22; // … while boosting
+const STRAFE_BANK  = 0.55; // body roll (rad) at full strafe — lean into the strafe
 const ALIGN_POW    = 0.0015; // turn assist: velocity-to-nose lerp base (snappier: flies where you point)
 const BRAKE_POW    = 0.45;   // coast brake: extra drag base when throttle is off
 const STEER_GAIN   = 0.014;  // smooth steering: yaw-rate gained per px of mouse

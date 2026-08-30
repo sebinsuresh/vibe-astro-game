@@ -142,3 +142,34 @@ function updateStreaks(dt, s, boost){
   streakMat.opacity = THREE.MathUtils.lerp(streakMat.opacity, target*0.5, 1 - Math.pow(0.02, dt));
   streakGroup.visible = streakMat.opacity > 0.01;
 }
+
+// ---------- strafe side jets (A/D) ------------------------------------------
+// Small rocket cones on the shoulders that FIRE IN THE OPPOSITE direction of
+// the strafe (reaction mass: push left to move right) and point BACKWARDS so
+// their trails read as side thrust, mirroring the foot-rocket convention.
+const _jetConeGeo = new THREE.ConeGeometry(0.13, 0.85, 10, 1, true);
+_jetConeGeo.rotateX(-Math.PI/2);   // +X = base, tip at +X*0.85 (trails back)
+const jetMatL = new THREE.MeshBasicMaterial({color:0xff6a1f, transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false});
+const jetMatR = jetMatL.clone();
+const jetL = new THREE.Mesh(_jetConeGeo, jetMatL);
+const jetR = new THREE.Mesh(_jetConeGeo, jetMatR);
+const jets = new THREE.Group();
+jets.add(jetL); jets.add(jetR);
+tilt.add(jets);
+
+function updateJets(dt, strafe){
+  // strafe: -1 (A, move left) … +1 (D, move right)
+  const targetL = strafe > 0 ? 0.75 + Math.random()*0.2 : 0;   // D -> L jet fires (pushes right)
+  const targetR = strafe < 0 ? 0.75 + Math.random()*0.2 : 0;   // A -> R jet fires (pushes left)
+  const k = 1 - Math.pow(0.001, dt);   // fast in/out
+  jetMatL.opacity = THREE.MathUtils.lerp(jetMatL.opacity, targetL, k);
+  jetMatR.opacity = THREE.MathUtils.lerp(jetMatR.opacity, targetR, k);
+  const onL = jetMatL.opacity > 0.02, onR = jetMatR.opacity > 0.02;
+  jetL.visible = onL; jetR.visible = onR;
+  if(onL) jetL.position.set(-0.42, 0.72,  0.15);   // over the LEFT shoulder, trailing back
+  if(onR) jetR.position.set( 0.42, 0.72,  0.15);
+  // gentle flicker in length
+  const f = 0.85 + Math.sin(performance.now()*0.045)*0.15;
+  jetL.scale.set(onL ? f : 0.001, onL ? 1 : 0.001, onL ? 1 : 0.001);
+  jetR.scale.set(onR ? f : 0.001, onR ? 1 : 0.001, onR ? 1 : 0.001);
+}

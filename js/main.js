@@ -28,6 +28,7 @@ function animate(){
 
   // VFX + pose markers
   updateFlames(t, flight.speed, flight.thrust, flight.boost);
+  updateJets(dt, flight.strafe);
   updateSparks(dt, flight.speed, flight.thrust);
   updateBursts(dt);
   updateStreaks(dt, flight.speed, flight.boost);

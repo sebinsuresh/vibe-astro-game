@@ -3,8 +3,8 @@
 // input.js — keyboard state, pointer-lock mouse STEERING, and wheel zoom.
 //
 // The mouse STEERS the character: horizontal motion turns it (writes to `yaw`),
-// vertical motion tilts the chase camera up/down. A/D keys also turn, as a
-// keyboard alternative. Exposes: keys, camPitch, camDist, locked.
+// vertical motion tilts the chase camera up/down. A/D keys STRAFE left/right
+// (lateral thrust, see physics.js). Exposes: keys, camPitch, camDist, locked.
 // ---------------------------------------------------------------------------
 
 const keys={};

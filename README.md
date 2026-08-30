@@ -22,7 +22,7 @@ Open `index.html` in any modern browser (or just open this repo on
 | Key | Action |
 | --- | --- |
 | **W / S** | Thrust forward / back |
-| **A / D** | Turn left / right (auto-banks) |
+| **A / D** | **Strafe** left / right (side rockets, no turning) |
 | **R / F** | Ascend / descend |
 | **SHIFT** | Boost |
 | **MOUSE** | Steer · look up/down (click the page to lock) |
@@ -72,8 +72,8 @@ is also clamped so it can never trail more than ~90° around you.
   and solid orange rocket flames with a spark trail
 - Foggy, high-key pastel city: ~180 procedurally generated towers with lit
   window textures, rooftop clutter, antenna spires, and a central flight corridor
-- Flight model: mouse or A/D steering, heading-relative thrust, banked turns,
-  vertical control, boost, drag and speed caps
+- Flight model: mouse steering, A/D lateral strafe, heading-relative thrust,
+  banked turns, vertical control, boost, drag and speed caps
 - Velocity-based body pose: leans forward with speed (extra while boosting),
   leans back when flying backwards, subtle nose-up/down on climb/descend,
   and banks into turns — matching the reference's diving feel
@@ -127,8 +127,7 @@ and captures screenshots; `tools/record_demo.py` records a scripted flight via
 CDP screencast. Serve the repo root locally with:
 
 ```bash
-python3 -m http.server 8000
-# then open http://127.0.0.1:8000
+./serve.sh        # http://0.0.0.0:8000  (reachable on the LAN IP too)
 ```
 
 A full 60 fps recording of a scripted flight can be produced with

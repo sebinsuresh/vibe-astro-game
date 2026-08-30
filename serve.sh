@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Start the ASTRO FLY dev server, reachable on this machine's LAN IP.
 # Usage (from project root):  ./serve.sh
+#
+# Serves with Cache-Control: no-store so browser tabs ALWAYS pick up the
+# latest js/ files on reload (plain http.server + Chrome's heuristic
+# Last-Modified caching would otherwise serve stale modules during dev).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -12,5 +16,17 @@ if command -v fuser >/dev/null 2>&1; then
   sleep 0.5
 fi
 
-echo "Serving $(pwd) at http://0.0.0.0:${PORT}/"
-exec python3 -m http.server "${PORT}" --bind 0.0.0.0
+echo "Serving $(pwd) at http://0.0.0.0:${PORT}/  (no-cache dev mode)"
+exec python3 - "${PORT}" <<'PY'
+import sys, http.server
+
+port = int(sys.argv[1])
+
+class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store, max-age=0")
+        self.send_header("Pragma", "no-cache")
+        super().end_headers()
+
+http.server.ThreadingHTTPServer(("0.0.0.0", port), NoCacheHandler).serve_forever()
+PY

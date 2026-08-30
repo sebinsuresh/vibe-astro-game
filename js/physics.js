@@ -3,10 +3,11 @@
 // physics.js — flight state, the per-frame movement model, and collision.
 //
 // Flight model (heading-relative):
-//   MOUSE / A D  steer the character (yaw) left/right (auto-banks into the turn)
-//   W/S  thrust forward/back along the player's nose
-//   R/F  ascend/descend
-//   SHIFT boost (more thrust, faster turns, higher speed cap)
+//   MOUSE      steer the character (yaw) left/right (auto-banks into the turn)
+//   W/S        thrust forward/back along the player's nose
+//   A/D        STRAFE left/right (lateral foot-rocket thrust, no turning)
+//   R/F        ascend/descend
+//   SHIFT      boost (more thrust, higher speed cap)
 // Drag + speed caps keep it feeling floaty but controllable.
 // The trailing chase camera follows the character's heading, so "forward" (W)
 // always points away from the camera.
@@ -15,6 +16,9 @@
 const vel = new THREE.Vector3();
 let yaw = 0;
 let yawRate = 0;    // current yaw rate (rad/s) — smooth steering + bank source
+// current A/D strafe input (-1 left … +1 right) — read by pose.js (bank) and
+// effects.js (side jets). Written each frame by updateFlight.
+let strafeInput = 0;
 // impact feedback (feature "impact"): the last wall clip's impulse, read by
 // camera.js (shake) and effects.js (spark burst). `t` decays in camera.js.
 // `mag` is the SPEED AT IMPACT (m/s) — captured in collide() BEFORE the
@@ -91,7 +95,10 @@ function updateFlight(dt, keys){
   //     rate (control-surface feel); the mouse input self-centres when
   //     you stop moving it.
   //   legacy (off): keys turn at a fixed rate, mouse applies instant yaw.
-  const turn = (keys['KeyA']?1:0) + (keys['KeyD']?-1:0); // A = left (+), D = right (-)
+  // Turning is now MOUSE-ONLY. A/D were moved to lateral STRAFE (below), so
+  // the key turn input is always 0. The steer/legacy yaw code still runs so
+  // the mouse (steerInput) drives the eased yaw rate as before.
+  const turn = 0;
   if(featOn('steer')){
     const target = steerInput + turn*(boost?KEY_TURN_BOOST:KEY_TURN);
     yawRate += (target - yawRate) * (1 - Math.pow(STEER_EASE, dt*60));
@@ -109,6 +116,26 @@ function updateFlight(dt, keys){
   vel.x += hx*az*accel*dt;
   vel.z += hz*az*accel*dt;
   vel.y += ay * VERT * (boost?1.6:1) * dt;
+
+  // lateral STRAFE (A/D): the foot rockets vector sideways — drive the
+  // velocity's LATERAL component (relative to the nose) toward a target
+  // speed. A plain acceleration would be fought by the "align" feature,
+  // which damps any sideways drift; driving the target directly lets you
+  // strafe hard even with turn assist on. Release -> align + drag kill the
+  // lateral quickly (snappy stop). pose.js banks into it, effects.js fires
+  // the side jets.
+  const strafe = (keys['KeyD']?1:0) - (keys['KeyA']?1:0);  // + = right
+  strafeInput = strafe;
+  if(strafe !== 0){
+    const rx = -hz, rz = hx;                         // right vector in xz (yaw 0 -> +X)
+    const latT = strafe * (boost ? STRAFE_MAX_BOOST : STRAFE_MAX);
+    const fwd  = vel.x*hx + vel.z*hz;                 // forward component
+    const latX = vel.x - hx*fwd;                      // current lateral (xz)
+    const latZ = vel.z - hz*fwd;
+    const k = 1 - Math.pow(0.002, dt);                // fast attack (~0.15s)
+    vel.x += (rx*latT - latX) * k;
+    vel.z += (rz*latT - latZ) * k;
+  }
 
   // drag + speed cap
   //   base drag always applies; the "coast brake" feature (featOn('brake'))
@@ -149,5 +176,5 @@ function updateFlight(dt, keys){
   const sp = vel.length();
   applyPose(dt, { thrust, speed: sp, boost });
 
-  return { thrust, speed: sp, boost };
+  return { thrust, speed: sp, boost, strafe: strafeInput };
 }

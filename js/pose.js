@@ -31,7 +31,8 @@ function applyPose(dt, f){
   const vPitch = Math.max(-0.45, Math.min(0.6, vel.y*0.035));
   // bank follows the ACTUAL yaw rate (works for mouse + keys, both modes);
   // magnitude matches the old fixed 0.55 at a full 2 rad/s key turn.
-  const targetRoll = -THREE.MathUtils.clamp(yawRate, -2, 2) * 0.275;
+  const targetRoll = -THREE.MathUtils.clamp(yawRate, -2, 2) * 0.275
+    - strafeInput * STRAFE_BANK;   // lean INTO the strafe direction (D -> lean right)
 
   let targetPitch;
   if(featOn('dive')){
