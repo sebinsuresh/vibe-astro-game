@@ -5,7 +5,16 @@
 // ESC releases the pointer lock, the game freezes (main.js checks
 // menuOpen) and this overlay lists every feel feature. Each row toggles
 // its feature instantly (features.js) while paused, so you can try the
-// difference on the next frame of flight. Settings persist.
+// difference the moment you resume. Settings persist.
+//
+// Resuming is deliberately obvious, because the cursor lands mid-screen
+// the instant the lock drops:
+//   • big RESUME button at the top of the panel (M)
+//   • click anywhere on the dark backdrop (it shows a pointer cursor)
+//   • ESC again
+// If the browser refuses the re-lock (it enforces a short cooldown after
+// an ESC release), the menu reopens — you're never left on a frozen,
+// unlocked game with no obvious next step.
 // ---------------------------------------------------------------------------
 
 let menuOpen = false;
@@ -63,16 +72,27 @@ function menuHide(){
   menuOpen = false;
   menuEl.classList.remove('show');
 }
-function menuToggle(){ menuOpen ? menuHide() : menuShow(); }
+
+// Resume: close the menu and take the pointer back. On Chrome the pointer
+// lock has a short cooldown after an ESC release — if the re-lock is
+// rejected, reopen the menu so the state stays understandable.
+function menuResume(){
+  menuHide();
+  const pr = renderer.domElement.requestPointerLock();
+  if(pr && pr.catch){
+    pr.catch(() => {
+      if(!document.pointerLockElement) menuShow();
+    });
+  }
+}
 
 addEventListener('keydown', (e) => {
   if(e.code === 'Escape' && document.pointerLockElement === null){
-    // ESC while released: open the menu (and vice versa)
+    // ESC while released: open the menu — ESC again resumes the flight.
     e.preventDefault();
-    menuToggle();
+    menuOpen ? menuResume() : menuShow();
   }
 });
-// while the menu is open, number keys toggle features without touching the game
 // while the menu is open, the feature keys toggle features
 addEventListener('keydown', (e) => {
   if(!menuOpen) return;
@@ -83,13 +103,14 @@ addEventListener('keydown', (e) => {
   }
   if(e.code === 'KeyM'){
     // re-launch: close menu and re-lock
-    menuHide();
-    renderer.domElement.requestPointerLock();
+    menuResume();
   }
 });
-document.getElementById('menuLaunch').addEventListener('click', () => {
-  menuHide();
-  renderer.domElement.requestPointerLock();
+document.getElementById('menuResume').addEventListener('click', menuResume);
+// clicking the dark backdrop (anything outside the panel) also resumes —
+// this works no matter where the cursor happens to be when the lock drops.
+menuEl.addEventListener('click', (e) => {
+  if(e.target === menuEl) menuResume();
 });
 
 // pointer-lock lifecycle:

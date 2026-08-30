@@ -10,18 +10,18 @@
 // ---------------------------------------------------------------------------
 
 const FEATURES = {
-  dive:    { key: '1', on: true,  name: 'Rocket dive pose',        desc: 'Body aligns with the thrust — near-vertical at full boost' },
+  dive:    { key: '1', on: true,  name: 'Rocket dive pose',        desc: 'Foot rockets: body pitches into the dive — near-flat (feet up) at full boost' },
   align:   { key: '2', on: true,  name: 'Turn assist',             desc: 'Velocity follows the nose — kills floaty crosswind drift' },
   brake:   { key: '3', on: true,  name: 'Coast brake',             desc: 'Snappy settle when you let go of the throttle' },
   steer:   { key: '4', on: false, name: 'Smooth steering',         desc: 'Control-surface turns (eased rate) instead of instant yaw' },
-  bank:    { key: '5', on: true,  name: 'Camera bank & look-ahead',desc: 'Camera rolls into turns and aims ahead of the ship' },
+  bank:    { key: '5', on: true,  name: 'Camera bank & look-ahead',desc: 'Camera rolls into turns and aims ahead of you' },
   warp:    { key: '6', on: true,  name: 'Speed FOV warp',          desc: 'Field of view widens with speed' },
   shake:   { key: '7', on: false, name: 'Speed shake',             desc: 'Subtle high-frequency camera vibration at speed' },
   arms:    { key: '8', on: true,  name: 'Streamlined arms',        desc: 'Arms sweep back at speed, gentle idle bob at rest' },
   streaks: { key: '9', on: false, name: 'Boost speed streaks',     desc: 'Speed lines flare out at high speed / boost' },
   impact:  { key: '0', on: true,  name: 'Impact feedback',         desc: 'Camera shake + spark burst when you clip a wall' },
   rings:   { key: 'q', on: true,  name: 'Ring pickup juice',       desc: 'Pop, spark burst and HUD pulse when you grab a ring' },
-  sparks:  { key: 'w', on: true,  name: 'Spark trail',             desc: 'Flame spark particles behind the ship' },
+  sparks:  { key: 'w', on: true,  name: 'Spark trail',             desc: 'Flame spark particles behind you' },
 };
 const FEATURE_LIST = Object.keys(FEATURES);
 

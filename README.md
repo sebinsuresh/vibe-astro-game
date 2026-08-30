@@ -25,12 +25,46 @@ Open `index.html` in any modern browser (or just open this repo on
 | **A / D** | Turn left / right (auto-banks) |
 | **R / F** | Ascend / descend |
 | **SHIFT** | Boost |
-| **MOUSE** | Steer ship · look up/down (click the page to lock) |
+| **MOUSE** | Steer · look up/down (click the page to lock) |
 | **WHEEL** | Zoom camera in / out |
 | **T** | Toggle FWD / BACK orientation markers (dev aid) |
-| **ESC** | Release mouse |
+| **ESC** | Release mouse + open the Feel Lab menu |
+| **M** | Resume (from the menu) |
 
 Fly through the foggy low-poly city and collect all **25 rings**.
+
+## Feel Lab
+
+The game has a built-in feel laboratory: **ESC** pauses the flight and opens
+a menu where **12 control / camera / VFX features** can be toggled one by one
+(hot, persisted to `localStorage`, number-key shortcuts). This lets you A/B
+the feel of each improvement in flight:
+
+| Key | Feature | What it does |
+| --- | --- | --- |
+| **1** | Rocket dive pose | The foot rockets do the flying, so the body pitches into the dive — ~60° at full cruise, near-flat (feet up) at full boost, while the flames stay held near-vertical |
+| **2** | Turn assist | Velocity eases onto the nose — kills the floaty crosswind drift |
+| **3** | Coast brake | Strong extra drag when the throttle is off — snappy settle |
+| **4** | Smooth steering | Mouse drives an eased yaw rate (control-surface feel) instead of an instant turn |
+| **5** | Camera bank & look-ahead | Camera rolls into turns and aims ahead of you, with the look-ahead growing with speed |
+| **6** | Speed FOV warp | Field of view widens with speed |
+| **7** | Speed shake | Subtle high-frequency camera vibration at speed |
+| **8** | Streamlined arms | Arms sweep back at speed, gentle idle bob at rest |
+| **9** | Boost speed streaks | Radial speed lines at high speed / boost |
+| **0** | Impact feedback | Camera shake + spark burst scaled by the impact speed |
+| **Q** | Ring pickup juice | Pop, spark burst and HUD pulse when you grab a ring |
+| **W** | Spark trail | Flame spark particles behind you |
+
+All features in `js/features.js` are plain booleans checked inline by the
+game modules, so toggling is instant and cannot leave stale state behind.
+
+The chase camera keeps its world up-vector pinned to (0,1,0) every frame and
+applies its turn-bank as a rotation about the *view axis* (quaternion
+post-multiplication) rather than an Euler-angle write — this is what keeps
+the horizon level through sustained turns (a `camera.rotation.z` write after
+`lookAt` used to rebuild the orientation from stale Euler angles and flip
+the whole view upside down on hard spinning turns). The camera's heading lag
+is also clamped so it can never trail more than ~90° around you.
 
 ## Features
 
@@ -43,7 +77,7 @@ Fly through the foggy low-poly city and collect all **25 rings**.
 - Velocity-based body pose: leans forward with speed (extra while boosting),
   leans back when flying backwards, subtle nose-up/down on climb/descend,
   and banks into turns — matching the reference's diving feel
-- Trailing chase camera that follows the ship's heading (pointer-lock, zoom,
+- Trailing chase camera that follows your heading (pointer-lock, zoom,
   building collision) — W always flies you "into the screen"; it pulls back
   and the FOV widens slightly with speed for a stronger sense of velocity
 - Building + ground collision, ring collection with HUD (speed / altitude / rings)
@@ -54,17 +88,19 @@ Fly through the foggy low-poly city and collect all **25 rings**.
 index.html              # loads the game (HTML/CSS + script tags only)
 js/
   config.js             # all tuning constants (colours, physics, camera, ...)
+  features.js           # the 12 hot-toggleable feel features (ESC menu)
   scene.js              # renderer, scene, fog, lights, ground
   city.js               # procedural city + window textures
   player.js             # chibi astro-boy, flames, glow, spark trail
-  pose.js               # per-frame body pose (forward lean, bank, climb tilt)
+  pose.js               # per-frame body pose (rocket-dive lean, bank, climb tilt)
   marker.js             # FWD / BACK orientation markers (T to toggle, dev aid)
   physics.js            # flight model + collision
-  effects.js            # flame / glow / spark VFX updates
+  effects.js            # flame / glow / spark / streak VFX updates
   rings.js              # collectible rings
   input.js              # keyboard + pointer-lock mouse steering, wheel zoom
-  camera.js             # trailing chase camera (speed pullback + FOV warp)
+  camera.js             # trailing chase camera (speed pullback, bank, FOV warp)
   hud.js                # speed / altitude / ring HUD
+  menu.js               # ESC menu: pointer-lock lifecycle + feature toggles
   main.js               # game loop + resize
 lib/three.min.js        # vendored three.js r149
 docs/screenshots/       # screenshots used in this README
@@ -73,7 +109,8 @@ reference/
   frames/               # frames extracted from proto.mp4 (1 fps)
 tools/
   cdp_helper.py         # Chrome DevTools Protocol helper (dev/test only)
-  record_demo.py        # scripted-demo screencast recorder (dev/test only)
+  _record.py            # scripted-demo screencast recorder (dev/test only)
+  _feat_test.py         # CDP feature-verification suite (dev/test only)
 .venv/                  # Python venv for the tools (gitignored)
 ```
 

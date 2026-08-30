@@ -19,12 +19,15 @@
   #overlay .start{margin-top:28px;font-size:16px;font-weight:600;color:#fff;background:#a3283a;padding:12px 34px;border-radius:10px;letter-spacing:2px;box-shadow:0 4px 14px rgba(163,40,58,.35);}
   #paused{display:none;}
   /* ---- feature menu (ESC) ---- */
-  #menu{display:none;position:fixed;inset:0;background:rgba(16,24,34,.55);backdrop-filter:blur(6px);z-index:10;align-items:center;justify-content:center;}
+  #menu{display:none;position:fixed;inset:0;background:rgba(16,24,34,.55);backdrop-filter:blur(6px);z-index:10;align-items:center;justify-content:center;cursor:pointer;}
   #menu.show{display:flex;}
-  #menu .panel{width:min(680px,92vw);max-height:88vh;overflow:auto;background:rgba(250,252,255,.97);border-radius:14px;padding:20px 24px 16px;box-shadow:0 18px 60px rgba(10,20,40,.45);}
+  #menu .panel{width:min(680px,92vw);max-height:88vh;overflow:auto;background:rgba(250,252,255,.97);border-radius:14px;padding:18px 24px 16px;box-shadow:0 18px 60px rgba(10,20,40,.45);cursor:default;}
   #menu h2{margin:0 0 4px;font-size:26px;letter-spacing:3px;color:#24303c;font-weight:800;}
   #menu h2 span{color:#a3283a;}
-  #menu .msub{margin:0 0 14px;font-size:13px;color:#5a6a78;}
+  #menu .msub{margin:0 0 12px;font-size:13px;color:#5a6a78;}
+  #menuResume{display:block;margin:0 auto 14px;font:inherit;font-size:17px;font-weight:800;letter-spacing:2px;color:#fff;background:#a3283a;border:0;border-radius:10px;padding:11px 46px;cursor:pointer;box-shadow:0 4px 16px rgba(163,40,58,.4);animation:resumepulse 1.6s ease-in-out infinite;}
+  #menuResume:hover{background:#8e1f30;}
+  @keyframes resumepulse{0%,100%{transform:scale(1);}50%{transform:scale(1.045);}}
   #menuList{display:flex;flex-direction:column;gap:6px;}
   .mrow{display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:9px;background:rgba(230,238,246,.8);cursor:pointer;transition:transform .08s, background .15s;}
   .mrow:hover{background:rgba(214,228,242,.95);transform:translateX(3px);}
@@ -37,7 +40,7 @@
   .mst.on{color:#0c6b34;background:rgba(46,160,90,.18);}
   .mst.off{color:#8a95a1;background:rgba(120,132,144,.15);}
   #menu .mfoot{margin-top:14px;display:flex;align-items:center;gap:14px;font-size:13px;color:#4a5866;}
-  #menu .mfoot button{font:inherit;font-weight:700;letter-spacing:1px;color:#fff;background:#a3283a;border:0;border-radius:9px;padding:9px 22px;cursor:pointer;box-shadow:0 4px 14px rgba(163,40,58,.35);}
+  #menu .mfoot .mfootres{font-weight:700;color:#a3283a;}
   /* ring pickup pulse (feature "rings") */
   #ringcount{display:inline-block;transform-origin:center;}
   #ringcount.pulse{animation:ringpulse .45s ease-out;}
@@ -62,11 +65,13 @@
 <div id="menu">
   <div class="panel">
     <h2>ASTRO <span>FLY</span> — FEEL LAB</h2>
-    <p class="msub">Paused. Toggle any feel feature below (click or its number key) — changes apply instantly when you relaunch. <b>M</b> or click to fly.</p>
+    <button id="menuResume">RESUME (M)</button>
+    <p class="msub">Paused. Toggle any feel feature below (click or its number key) — changes apply instantly when you resume. <b>Click anywhere</b> (or <b>ESC</b> / <b>M</b>) to fly.</p>
     <div id="menuList"></div>
     <div class="mfoot">
-      <button id="menuLaunch">LAUNCH (M)</button>
-      <span>ESC opens/closes this menu</span>
+      <span class="mfootres">ESC opens / closes this menu</span>
+      <span>·</span>
+      <span>click the dark area to resume</span>
     </div>
   </div>
 </div>

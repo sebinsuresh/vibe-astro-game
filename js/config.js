@@ -36,7 +36,7 @@ const RING_COUNT = 25;
 const RING_PICKUP_DIST_SQ = 7;     // squared distance for ring collection
 
 // ---- camera (trailing chase cam) ----
-const CAM_TURN_SPEED   = 0.0042;   // mouse X -> steer the ship (rad / px)
+const CAM_TURN_SPEED   = 0.0042;   // mouse X -> steer the character (rad / px)
 const CAM_PITCH_SPEED  = 0.0024;   // mouse Y -> look up/down (rad / px)
 const CAM_PITCH_MIN    = 0.10;
 const CAM_PITCH_MAX    = 0.95;
@@ -50,6 +50,7 @@ const CAM_LOOK_AHEAD_H = 3.0;      // look-at point ahead along heading
 const CAM_LOOK_UP_TGT  = 1.4;      // look-at height above player
 const CAM_FOLLOW       = 0.0006;   // camera position lerp base (1 - base^dt)
 const CAM_HEADING_LAG  = 0.014;    // camera heading lerp base (trail behind yaw)
+const CAM_LAG_MAX      = 1.57;     // clamp on heading lag (rad): camera never trails past ~90°
 const CAM_SPEED_DZ     = 0.10;     // extra camera distance per m/s (pull back at speed)
 const CAM_SPEED_DZ_MAX = 6;        // cap on that extra distance
 const CAM_FOV_BASE     = 65;       // base field of view
@@ -72,7 +73,7 @@ const KEY_TURN     = 2.0;    // key turn rate target (rad/s)
 const KEY_TURN_BOOST = 2.6;  // … while boosting
 
 // ---- camera feel ----
-const CAM_BANK     = 0.7;    // camera bank factor (share of ship roll)
+const CAM_BANK     = 0.7;    // camera bank factor (share of character roll)
 const AHEAD_PER_SPEED = 0.25;// look-ahead metres per m/s
 const AHEAD_MAX    = 8;      // cap on look-ahead distance
 const SHAKE_AMP    = 0.05;   // speed shake amplitude (m) at cruise

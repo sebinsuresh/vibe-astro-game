@@ -21,8 +21,21 @@ _b.recv(); _b.close()
 p = cdp_helper.Page(f"index.html?v={N}")
 p.send("Network.enable"); p.send("Network.setCacheDisabled", cacheDisabled=True)
 p.js("location.reload(true)")
+p.ws.close()   # reload drops the session — re-attach below
 time.sleep(5)
-p.send("Runtime.enable")
+p = None
+for _ in range(12):
+    try:
+        cand = cdp_helper.Page(f"index.html?v={N}")
+        cand.send("Runtime.enable")
+        if cand.js("typeof updateFlight") == "function":
+            p = cand
+            break
+    except Exception:
+        pass
+    time.sleep(1.5)
+if p is None:
+    raise RuntimeError("could not re-attach after reload")
 print("boot:", p.js("({three:THREE.REVISION, bld:buildings.length, feats:FEATURE_LIST.length})"))
 errs = p.console_since()
 print("console:", errs if errs else "(clean)")
@@ -121,12 +134,16 @@ check("steer", r6 < abs(-4)*0.6 and r66 > r6 and abs(r_release) < 0.5,
 js("featSet('steer', false); steerInput=0")
 
 print("== 5. camera bank + look-ahead ==")
+# measure the true view roll from the camera's world RIGHT vector
+# (asin(right.y) is unambiguous at any view pitch; "+0" normalises -0,
+#  which CDP's returnByValue drops to null)
+CAMROLL = "(()=>{const r=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);return Math.asin(Math.max(-1,Math.min(1,r.y)))*180/Math.PI + 0;})()"
 js("featSet('bank', true); " + RESET + "({x:0,y:14,z:60})")
-js("for(let i=0;i<200;i++){updateFlight(1/60,{KeyW:true});} keys['KeyD']=true; for(let i=0;i<30;i++){updateFlight(1/60,keys); updateCamera(1/60,astro.position);} keys['KeyD']=false; renderer.render(scene,camera); 'ok'")
-bank_on = json.loads(js("JSON.stringify({camroll:THREE.MathUtils.radToDeg(camera.rotation.z).toFixed(1), ahead:camPitch})"))
+js("for(let i=0;i<200;i++){updateFlight(1/60,{KeyW:true}); updateCamera(1/60,astro.position);} keys['KeyD']=true; for(let i=0;i<30;i++){updateFlight(1/60,keys); updateCamera(1/60,astro.position);} keys['KeyD']=false; renderer.render(scene,camera); 'ok'")
+bank_on = json.loads(js("JSON.stringify({camroll:" + CAMROLL + ", ahead:camPitch})"))
 js("featSet('bank', false); " + RESET + "({x:0,y:14,z:60})")
-js("for(let i=0;i<200;i++){updateFlight(1/60,{KeyW:true});} keys['KeyD']=true; for(let i=0;i<30;i++){updateFlight(1/60,keys); updateCamera(1/60,astro.position);} keys['KeyD']=false; renderer.render(scene,camera); 'ok'")
-bank_off = float(js("THREE.MathUtils.radToDeg(camera.rotation.z).toFixed(1)"))
+js("for(let i=0;i<200;i++){updateFlight(1/60,{KeyW:true}); updateCamera(1/60,astro.position);} keys['KeyD']=true; for(let i=0;i<30;i++){updateFlight(1/60,keys); updateCamera(1/60,astro.position);} keys['KeyD']=false; renderer.render(scene,camera); 'ok'")
+bank_off = float(js(CAMROLL))
 check("bank", abs(float(bank_on["camroll"])) > 2 and abs(bank_off) < 0.5, f"ON camroll={bank_on['camroll']}° | OFF {bank_off}°")
 js("featSet('bank', true)")
 

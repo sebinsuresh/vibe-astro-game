@@ -3,12 +3,12 @@
 // physics.js — flight state, the per-frame movement model, and collision.
 //
 // Flight model (heading-relative):
-//   MOUSE / A D  steer the ship (yaw) left/right (auto-banks into the turn)
+//   MOUSE / A D  steer the character (yaw) left/right (auto-banks into the turn)
 //   W/S  thrust forward/back along the player's nose
 //   R/F  ascend/descend
 //   SHIFT boost (more thrust, faster turns, higher speed cap)
 // Drag + speed caps keep it feeling floaty but controllable.
-// The trailing chase camera follows the ship's heading, so "forward" (W)
+// The trailing chase camera follows the character's heading, so "forward" (W)
 // always points away from the camera.
 // ---------------------------------------------------------------------------
 
@@ -53,12 +53,19 @@ function collideCamera(p){
   for(const b of buildings){
     if(p.y > b.top) continue;
     if(p.x>b.minX-R && p.x<b.maxX+R && p.z>b.minZ-R && p.z<b.maxZ+R){
-      const dx1=p.x-(b.minX-R), dx2=(b.maxX+R)-p.x, dz1=p.z-(b.minZ-R), dz2=(b.maxZ+R)-p.z;
-      const m=Math.min(dx1,dx2,dz1,dz2);
-      if(m===dx1) p.x=b.minX-R;
-      else if(m===dx2) p.x=b.maxX+R;
-      else if(m===dz1) p.z=b.minZ-R;
-      else p.z=b.maxZ+R;
+      // push out along ALL penetrating axes (not just the smallest one):
+      // resolving one axis per pass can leave the camera inside the box and
+      // the chase view tilts wildly. A few passes fully free the camera.
+      for(let k=0;k<4;k++){
+        const dx1=p.x-(b.minX-R), dx2=(b.maxX+R)-p.x;
+        const dz1=p.z-(b.minZ-R), dz2=(b.maxZ+R)-p.z;
+        const m=Math.min(dx1,dx2,dz1,dz2);
+        if(m>1e-3) break;                 // free
+        if(m===dx1) p.x=b.minX-R;
+        else if(m===dx2) p.x=b.maxX+R;
+        else if(m===dz1) p.z=b.minZ-R;
+        else p.z=b.maxZ+R;
+      }
     }
   }
   if(p.y<0.5) p.y=0.5;
@@ -105,7 +112,7 @@ function updateFlight(dt, keys){
 
   // drag + speed cap
   //   base drag always applies; the "coast brake" feature (featOn('brake'))
-  //   adds strong extra drag once the throttle is off, so the ship settles
+  //   adds strong extra drag once the throttle is off, so you settle
   //   quickly instead of drifting floaty.
   let dragBase = DRAG_BASE;
   if(featOn('brake') && thrust < 0.01) dragBase *= BRAKE_POW;
@@ -116,7 +123,7 @@ function updateFlight(dt, keys){
 
   // turn assist (featOn('align')): ease the velocity vector onto the nose.
   // Without it, speed keeps the direction you had when you turned — the
-  // "floaty" crosswind drift. With it, the ship flies where it points.
+  // "floaty" crosswind drift. With it, you fly where you point.
   if(featOn('align') && s > 0.3){
     const hx=-Math.sin(yaw), hz=-Math.cos(yaw);
     const ahead = vel.x*hx + vel.z*hz;          // forward component

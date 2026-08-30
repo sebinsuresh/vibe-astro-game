@@ -36,7 +36,7 @@ print("pilot:", p.js("""window.stepDemo = (function(){
   window.requestAnimationFrame = function(){ return 0; };       // freeze page clock
   clock.getDelta = function(){ return 1/60; };
   var F = 1/60, t = 0, got = 0, cool = 0, cruiseTurn = 0, dir = 1;
-  // reset ship + camera
+  // reset character + camera
   yaw = 0; vel.set(0,0,0); astro.position.set(0, 14, 60);
   tilt.rotation.set(0,0,0); camHeading = 0; camPitch = 0.34; camDist = 10;
   function bestRing(){
