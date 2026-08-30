@@ -57,8 +57,27 @@ const CAM_FOV_SPEED    = 0.35;     // extra degrees per m/s (sense of speed)
 const CAM_FOV_MAX      = 82;       // cap on the widened fov
 
 // ---- body pose (lean) ----
-const LEAN       = 0.34;   // forward pitch at full cruise speed (rad, ≈19°)
-const BOOST_LEAN = 0.60;   // forward pitch at full cruise speed while boosting (≈34°)
+const LEAN       = 0.34;   // [legacy] forward pitch at full cruise (rad, ≈19°)
+const BOOST_LEAN = 0.60;   // [legacy] forward pitch at full speed while boosting
+const DIVE_CRUISE  = 1.05; // rocket-dive pose: pitch at full cruise speed (≈60°)
+const DIVE_BOOST   = 1.58; // rocket-dive pose: pitch at full boost (≈90° — body flat, feet up)
+const FLAME_HOLD   = 1.0;  // how strongly the flames stay vertical (1 = fully)
+
+// ---- control feel ----
+const ALIGN_POW    = 0.005;  // turn assist: velocity-to-nose lerp base
+const BRAKE_POW    = 0.50;   // coast brake: extra drag base when throttle is off
+const STEER_GAIN   = 0.014;  // smooth steering: yaw-rate gained per px of mouse
+const STEER_EASE   = 0.0004; // smooth steering: yaw-rate easing base (per frame)
+const KEY_TURN     = 2.0;    // key turn rate target (rad/s)
+const KEY_TURN_BOOST = 2.6;  // … while boosting
+
+// ---- camera feel ----
+const CAM_BANK     = 0.7;    // camera bank factor (share of ship roll)
+const AHEAD_PER_SPEED = 0.25;// look-ahead metres per m/s
+const AHEAD_MAX    = 8;      // cap on look-ahead distance
+const SHAKE_AMP    = 0.05;   // speed shake amplitude (m) at cruise
+const SHAKE_AMP_BOOST = 0.10;// … while boosting
 
 // ---- effects ----
 const SPARKS = 70;                 // spark-trail particle pool
+const STREAKS = 48;                // boost speed-line pool

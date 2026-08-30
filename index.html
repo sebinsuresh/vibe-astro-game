@@ -17,7 +17,35 @@
   #overlay .controls{display:grid;grid-template-columns:auto auto;gap:7px 18px;font-size:14.5px;color:#3a4754;background:rgba(255,255,255,.6);padding:18px 30px;border-radius:12px;}
   #overlay .controls b{color:#a3283a;font-weight:700;text-align:right;}
   #overlay .start{margin-top:28px;font-size:16px;font-weight:600;color:#fff;background:#a3283a;padding:12px 34px;border-radius:10px;letter-spacing:2px;box-shadow:0 4px 14px rgba(163,40,58,.35);}
-  #paused{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.75);padding:14px 26px;border-radius:10px;color:#24303c;font-size:16px;font-weight:600;z-index:6;pointer-events:none;}
+  #paused{display:none;}
+  /* ---- feature menu (ESC) ---- */
+  #menu{display:none;position:fixed;inset:0;background:rgba(16,24,34,.55);backdrop-filter:blur(6px);z-index:10;align-items:center;justify-content:center;}
+  #menu.show{display:flex;}
+  #menu .panel{width:min(680px,92vw);max-height:88vh;overflow:auto;background:rgba(250,252,255,.97);border-radius:14px;padding:20px 24px 16px;box-shadow:0 18px 60px rgba(10,20,40,.45);}
+  #menu h2{margin:0 0 4px;font-size:26px;letter-spacing:3px;color:#24303c;font-weight:800;}
+  #menu h2 span{color:#a3283a;}
+  #menu .msub{margin:0 0 14px;font-size:13px;color:#5a6a78;}
+  #menuList{display:flex;flex-direction:column;gap:6px;}
+  .mrow{display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:9px;background:rgba(230,238,246,.8);cursor:pointer;transition:transform .08s, background .15s;}
+  .mrow:hover{background:rgba(214,228,242,.95);transform:translateX(3px);}
+  .mrow.dim{opacity:.55;}
+  .mk{flex:0 0 30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;background:#a3283a;border-radius:7px;box-shadow:0 2px 6px rgba(163,40,58,.35);}
+  .mtxt{flex:1;display:flex;flex-direction:column;line-height:1.25;}
+  .mtxt b{font-size:14.5px;color:#24303c;}
+  .mtxt i{font-style:normal;font-size:12px;color:#5a6a78;}
+  .mst{flex:0 0 46px;text-align:center;font-weight:800;font-size:13px;padding:5px 0;border-radius:7px;}
+  .mst.on{color:#0c6b34;background:rgba(46,160,90,.18);}
+  .mst.off{color:#8a95a1;background:rgba(120,132,144,.15);}
+  #menu .mfoot{margin-top:14px;display:flex;align-items:center;gap:14px;font-size:13px;color:#4a5866;}
+  #menu .mfoot button{font:inherit;font-weight:700;letter-spacing:1px;color:#fff;background:#a3283a;border:0;border-radius:9px;padding:9px 22px;cursor:pointer;box-shadow:0 4px 14px rgba(163,40,58,.35);}
+  /* ring pickup pulse (feature "rings") */
+  #ringcount{display:inline-block;transform-origin:center;}
+  #ringcount.pulse{animation:ringpulse .45s ease-out;}
+  @keyframes ringpulse{
+    0%{transform:scale(1);color:#ff8a1e;}
+    35%{transform:scale(1.7);}
+    100%{transform:scale(1);}
+  }
 </style>
 </head>
 <body>
@@ -29,8 +57,19 @@
   <div class="big"><span id="ringcount">0</span>/25</div>
   <div>RINGS</div>
 </div>
-<div id="hint">MOUSE steer · W S thrust · R F · SHIFT boost · ESC pause</div>
-<div id="paused">PAUSED — click to resume</div>
+<div id="hint">MOUSE steer · W S thrust · R F · SHIFT boost · ESC menu</div>
+<div id="paused"></div>
+<div id="menu">
+  <div class="panel">
+    <h2>ASTRO <span>FLY</span> — FEEL LAB</h2>
+    <p class="msub">Paused. Toggle any feel feature below (click or its number key) — changes apply instantly when you relaunch. <b>M</b> or click to fly.</p>
+    <div id="menuList"></div>
+    <div class="mfoot">
+      <button id="menuLaunch">LAUNCH (M)</button>
+      <span>ESC opens/closes this menu</span>
+    </div>
+  </div>
+</div>
 <div id="overlay">
   <h1>ASTRO <span>FLY</span></h1>
   <div class="sub">rocket-flight through the fog city</div>
@@ -47,6 +86,7 @@
 </div>
 <script src="lib/three.min.js"></script>
 <script src="js/config.js"></script>
+<script src="js/features.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/city.js"></script>
 <script src="js/player.js"></script>
@@ -58,6 +98,7 @@
 <script src="js/input.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/hud.js"></script>
+<script src="js/menu.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

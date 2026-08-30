@@ -16,6 +16,7 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(FOGCOL, FOG_NEAR, FOG_FAR);
 
 const camera = new THREE.PerspectiveCamera(CAM_FOV_BASE, innerWidth / innerHeight, 0.1, 900);
+scene.add(camera);   // camera must be in the graph so its children (streaks) render
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 const sun = new THREE.DirectionalLight(0xfff2e0, 0.55);

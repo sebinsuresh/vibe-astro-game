@@ -30,6 +30,14 @@ function updateRings(dt, p){
       if(r.position.distanceToSquared(p) < RING_PICKUP_DIST_SQ){
         r.visible=false; ringsGot++;
         document.getElementById('ringcount').textContent=ringsGot;
+        // pickup juice (feature "rings"): spark burst at the ring + HUD pulse
+        if(featOn('rings')){
+          spawnBurst(r.position.x, r.position.y, r.position.z, 26, 0xffa040);
+          const el = document.getElementById('ringcount');
+          el.classList.remove('pulse');
+          void el.offsetWidth;              // restart the CSS animation
+          el.classList.add('pulse');
+        }
       }
     }
   }

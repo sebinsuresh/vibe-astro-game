@@ -39,7 +39,8 @@ const e2=new THREE.Mesh(eyeGeo,mat(BLACK)); e2.position.set(-0.15,0.02,-0.37); h
 const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.035,0.02), mat(BLACK));
 mouth.position.set(0,-0.13,-0.40); head.add(mouth);
 
-// arms — spread for flight
+// arms — spread for flight (kept globally so pose.js can streamline them)
+const armGroups = [];
 function arm(side){
   const a=new THREE.Group(); a.position.set(0.30*side,0.72,0);
   a.rotation.z=side*-1.15; a.rotation.x=0.15;
@@ -47,7 +48,8 @@ function arm(side){
   const hand=new THREE.Mesh(new THREE.SphereGeometry(0.1,10,8),mat(CREAM)); hand.position.y=0.42; a.add(hand);
   return a;
 }
-tilt.add(arm(1)); tilt.add(arm(-1));
+armGroups.push(arm(1), arm(-1));
+armGroups.forEach(a=>tilt.add(a));
 
 // legs + rocket boots
 const flames=new THREE.Group();
