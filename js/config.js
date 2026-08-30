@@ -6,7 +6,10 @@
 // ---------------------------------------------------------------------------
 
 // ---- atmosphere / scene ----
-const FOGCOL   = 0xd7dfe8;   // fog + sky colour (high-key "fog city")
+const FOGCOL   = 0xcfd8e0;   // fog colour (matches the sky horizon haze)
+const SKY_TOP  = 0x4c8fd6;   // zenith  (clear blue)
+const SKY_MID  = 0xa9cbe6;   // mid sky
+const SKY_HZ   = 0xe8edf0;   // horizon haze
 const FOG_NEAR = 55;
 const FOG_FAR  = 400;
 
