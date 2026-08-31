@@ -22,6 +22,7 @@ const FEATURES = {
   impact:  { key: '0', on: true,  name: 'Impact feedback',         desc: 'Camera shake + spark burst when you clip a wall' },
   rings:   { key: 'q', on: true,  name: 'Ring pickup juice',       desc: 'Pop, spark burst and HUD pulse when you grab a ring' },
   sparks:  { key: 'w', on: true,  name: 'Spark trail',             desc: 'Flame spark particles behind you' },
+  model:   { key: 'e', on: true,  name: 'GLB model body',          desc: 'Character = loaded model (models/manifest.json) w/ animation clips; off = procedural chibi body' },
 };
 const FEATURE_LIST = Object.keys(FEATURES);
 
@@ -52,6 +53,7 @@ function featToggle(id){
   f.on = !f.on;
   saveFeatures();
   _sync(id);
+  _featHook(id);
   return f.on;
 }
 function featSet(id, on){
@@ -60,4 +62,8 @@ function featSet(id, on){
   f.on = !!on;
   saveFeatures();
   _sync(id);
+  _featHook(id);
 }
+// feature-aware modules (model.js) register a hook here
+let _featHook = function(){};
+function setFeatureHook(fn){ if(typeof fn === 'function') _featHook = fn; }

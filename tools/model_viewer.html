@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASTRO FLY — Model Viewer</title>
+<style>
+  html,body{margin:0;height:100%;background:#141922;color:#e8edf5;
+    font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif;overflow:hidden}
+  #c{width:100vw;height:100vh;display:block}
+  #panel{position:fixed;top:10px;left:10px;z-index:5;background:rgba(15,20,28,.88);
+    border:1px solid #2c3a4d;border-radius:10px;padding:12px 14px;max-width:340px;
+    backdrop-filter:blur(6px);font-size:13px}
+  #panel h1{font-size:14px;margin:0 0 8px;letter-spacing:.06em;color:#8fd0ff}
+  #panel .row{margin:6px 0}
+  #panel label{color:#9fb2c8;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  #panel select,#panel input[type=text]{background:#0d1420;color:#e8edf5;border:1px solid #33455e;
+    border-radius:6px;padding:5px 7px;font-size:13px;width:100%;box-sizing:border-box}
+  #panel button{background:#2456a6;border:1px solid #3a72d0;color:#fff;border-radius:6px;
+    padding:6px 10px;font-size:13px;cursor:pointer;margin:2px 4px 2px 0}
+  #panel button:hover{background:#2e66c4}
+  #panel button.on{background:#2e8b57;border-color:#39c47a}
+  #stats{margin-top:8px;color:#9fb2c8;font-size:12px;line-height:1.5;white-space:pre-line}
+  #status{margin-top:6px;font-size:12px;color:#ffd27a;min-height:14px}
+  #err{margin-top:6px;font-size:12px;color:#ff8080;white-space:pre-wrap}
+  .drop{outline:2px dashed #4aa3ff;outline-offset:-8px}
+  .hint{color:#6f8199;font-size:11px;margin-top:8px}
+  kbd{background:#0d1420;border:1px solid #33455e;border-radius:4px;padding:0 5px;font-size:11px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="panel">
+  <h1>MODEL VIEWER</h1>
+  <div id="status">loading manifest…</div>
+  <div class="row"><label>Model file</label>
+    <input type="text" id="file" spellcheck="false">
+  </div>
+  <div class="row" id="animRow" style="display:none">
+    <label>Animation <span id="animName" style="text-transform:none;color:#cfe3ff"></span></label>
+    <div>
+      <select id="anim" size="1" style="margin-bottom:4px"></select>
+      <button id="playBtn">⏯ Play</button>
+      <button id="loopBtn" class="on">Loop</button>
+      <label style="text-transform:none;color:#9fb2c8">speed <span id="spdVal">1.0×</span></label>
+      <input type="range" id="spd" min="0" max="3" step="0.05" value="1" style="width:100%">
+    </div>
+  </div>
+  <div class="row"><label>View</label>
+    <div>
+      <button id="resetBtn">Reset cam</button>
+      <button id="wireBtn">Wireframe</button>
+      <button id="turnBtn">Turntable</button>
+    </div>
+  </div>
+  <div id="stats"></div>
+  <div id="err"></div>
+  <div class="hint">
+    Drag = orbit · wheel = zoom · right-drag = pan<br>
+    Drag a <b>.glb/.gltf/.obj</b> file anywhere on the page to load it.<br>
+    URL params: <kbd>?file=models/foo.glb</kbd> <kbd>&amp;anim=run</kbd>
+    <kbd>&amp;scale=0.5</kbd>
+  </div>
+</div>
+
+<script src="../lib/three.min.js"></script>
+<script src="../lib/GLTFLoader.js"></script>
+<script>
+'use strict';
+const cv = document.getElementById('c');
+const $ = id => document.getElementById(id);
+const statusEl = $('status'), statsEl = $('stats'), errEl = $('err'),
+      fileEl = $('file'), animSel = $('anim'), animRow = $('animRow'),
+      playBtn = $('playBtn'), loopBtn = $('loopBtn'), spdEl = $('spd'),
+      spdVal = $('spdVal'), animNameEl = $('animName');
+
+// ---- renderer / scene -------------------------------------------------------
+const renderer = new THREE.WebGLRenderer({canvas: cv, antialias: true});
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a2330);
+scene.fog = new THREE.Fog(0x1a2330, 30, 90);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 500);
+
+// lights
+const hemi = new THREE.HemisphereLight(0xbfd4ff, 0x30281c, 1.0); scene.add(hemi);
+const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(4, 8, 5); scene.add(key);
+const rim = new THREE.DirectionalLight(0x88aaff, 0.7); rim.position.set(-6, 3, -6); scene.add(rim);
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(14, 48).rotateX(-Math.PI/2),
+  new THREE.MeshLambertMaterial({color: 0x232d3c}));
+scene.add(ground);
+const grid = new THREE.GridHelper(28, 28, 0x3a4a63, 0x2a3547);
+grid.position.y = 0.001; scene.add(grid);
+
+// ---- orbit controls (tiny, dependency-free) ---------------------------------
+const ctrl = {
+  target: new THREE.Vector3(0, 1, 0),
+  radius: 6, theta: 0.6, phi: 1.15,
+  minR: 0.5, maxR: 60,
+};
+function applyCam(){
+  const sp = Math.sin(ctrl.phi), cp = Math.cos(ctrl.phi);
+  camera.position.set(
+    ctrl.target.x + ctrl.radius * sp * Math.sin(ctrl.theta),
+    ctrl.target.y + ctrl.radius * cp,
+    ctrl.target.z + ctrl.radius * sp * Math.cos(ctrl.theta));
+  camera.lookAt(ctrl.target);
+}
+let dragMode = 0; // 1 = orbit, 2 = pan
+cv.addEventListener('pointerdown', e => {
+  dragMode = (e.button === 2) ? 2 : 1;
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointerup', () => dragMode = 0);
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointermove', e => {
+  if (!dragMode) return;
+  const dx = e.movementX, dy = e.movementY;
+  if (dragMode === 1){
+    ctrl.theta -= dx * 0.008;
+    ctrl.phi = THREE.MathUtils.clamp(ctrl.phi - dy * 0.008, 0.05, Math.PI - 0.05);
+  } else {
+    const s = ctrl.radius * 0.0016;
+    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
+    ctrl.target.addScaledVector(right, -dx * s).addScaledVector(up, dy * s);
+  }
+  applyCam();
+});
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  ctrl.radius = THREE.MathUtils.clamp(ctrl.radius * (e.deltaY > 0 ? 1.1 : 0.9), ctrl.minR, ctrl.maxR);
+  applyCam();
+}, {passive: false});
+$('resetBtn').onclick = () => { ctrl.target.set(0,1,0); ctrl.radius=6; ctrl.theta=0.6; ctrl.phi=1.15; applyCam(); };
+let wire = false;
+$('wireBtn').onclick = () => {
+  wire = !wire;
+  scene.traverse(o => { if (o.isMesh && o.material) {
+    (Array.isArray(o.material)?o.material:[o.material]).forEach(m => m.wireframe = wire); }});
+  $('wireBtn').classList.toggle('on', wire);
+};
+let turn = false;
+$('turnBtn').onclick = () => { turn = !turn; $('turnBtn').classList.toggle('on', turn); };
+
+// ---- model state ------------------------------------------------------------
+let current = null, mixer = null, currentAction = null, currentClipName = null;
+let clipsStore = [];
+const clock = new THREE.Clock();
+let modelRoot = null;
+
+function setFile(f){ fileEl.value = f; }
+function setStatus(s){ statusEl.textContent = s; }
+function setErr(s){ errEl.textContent = s || ''; }
+
+function clearModel(){
+  if (modelRoot){ scene.remove(modelRoot); modelRoot = null; }
+  mixer = null; currentAction = null;
+  animRow.style.display = 'none';
+  animSel.innerHTML = '';
+  statsEl.textContent = '';
+}
+
+// raw-mesh-geometry bounds in the root's LOCAL space (skinning excluded —
+// clips deform around the bind pose, so this is the right fit reference).
+// skeleton-aware bounds for fit/centering (see model.js for rationale):
+// skinned models render at their BONE extent, not the raw geometry box.
+function fitBounds(root){
+  const box = new THREE.Box3();
+  root.updateMatrixWorld(true);
+  const rootInv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const m = new THREE.Matrix4();
+  let hasSkin = false, hasMesh = false;
+  root.traverse(o => {
+    if(o.isBone){
+      hasSkin = true;
+      const w = o.getWorldPosition(new THREE.Vector3());
+      box.expandByPoint(new THREE.Vector3().copy(w).applyMatrix4(rootInv));
+    } else if(o.isMesh && o.geometry){
+      hasMesh = true;
+      if(!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      m.copy(rootInv).multiply(o.matrixWorld);
+      box.union(o.geometry.boundingBox.clone().applyMatrix4(m));
+    }
+  });
+  if(!hasSkin && !hasMesh) box.makeEmpty();
+  return box;
+}
+
+function geometryBounds(root){
+  const box = new THREE.Box3();
+  root.updateMatrixWorld(true);
+  const rootInv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const m = new THREE.Matrix4();
+  let any = false;
+  root.traverse(o => {
+    if(o.isMesh && o.geometry){
+      if(!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      m.copy(rootInv).multiply(o.matrixWorld);
+      box.union(o.geometry.boundingBox.clone().applyMatrix4(m));
+      any = true;
+    }
+  });
+  if(!any) box.makeEmpty();
+  return box;
+}
+
+function centerAndFit(root, scale){
+  const box = fitBounds(root);
+  const size = box.getSize(new THREE.Vector3());
+  root.scale.setScalar(scale);
+  root.updateMatrixWorld(true);
+  // stand on ground + center in xz (local bounds * scale)
+  root.position.x = -(box.min.x + box.max.x) * 0.5 * scale;
+  root.position.z = -(box.min.z + box.max.z) * 0.5 * scale;
+  root.position.y = -box.min.y * scale;
+  const extent = Math.max(size.x, size.y, size.z) * scale;
+  ctrl.target.set(0, size.y * scale * 0.5, 0);
+  ctrl.radius = THREE.MathUtils.clamp(extent * 1.6, 1.2, 40);
+  ctrl.theta = 0.6; ctrl.phi = 1.15;
+  applyCam();
+  return {size, extent};
+}
+
+function populateAnims(clips){
+  animSel.innerHTML = '';
+  clips.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.name || `clip${clips.indexOf(c)}`;
+    o.textContent = `${c.name || '(unnamed)'}  (${c.duration.toFixed(2)}s)`;
+    animSel.appendChild(o);
+  });
+  animSel.onchange = () => playClip(animSel.value);
+  if (clips.length) animRow.style.display = 'block';
+}
+
+function playClip(name){
+  if (!mixer) return;
+  const target = clipsStore.find(c => (c.name || '') === name);
+  if (!target) return;
+  if (currentAction && currentAction !== mixer.clipAction(target)) currentAction.fadeOut(0.2);
+  currentAction = mixer.clipAction(target);
+  currentAction.setLoop(THREE.LoopRepeat, Infinity);
+  currentAction.clampWhenFinished = false;
+  currentAction.reset().play();
+  currentClipName = name;
+  animNameEl.textContent = name;
+  playBtn.textContent = '⏸ Pause';
+}
+
+playBtn.onclick = () => {
+  if (!currentAction) return;
+  if (currentAction.isRunning()){ currentAction.paused = true; playBtn.textContent = '▶ Play'; }
+  else { currentAction.paused = false; playBtn.textContent = '⏸ Pause'; }
+};
+loopBtn.onclick = () => {
+  loopBtn.classList.toggle('on');
+  if (currentAction){
+    const on = loopBtn.classList.contains('on');
+    currentAction.setLoop(on ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
+    currentAction.clampWhenFinished = !on;
+  }
+};
+spdEl.oninput = () => {
+  const v = parseFloat(spdEl.value);
+  spdVal.textContent = v.toFixed(2) + '×';
+  if (mixer) mixer.timeScale = v;
+};
+
+// ---- loaders ----------------------------------------------------------------
+function loadGLB(url, done){
+  setStatus('loading ' + url + ' …');
+  new THREE.GLTFLoader().load(url, g => {
+    let root = g.scene || g.scenes[0];
+    // optional named root node
+    if (manifest && manifest.rootNode){
+      const n = root.getObjectByName(manifest.rootNode);
+      if (n) root = n;
+    }
+    // ADAPTABLE scale: models are authored in arbitrary units (Xbot is ~0.018
+    // tall!). If the manifest sets fitHeight, normalize the model's height to
+    // that many world units so it displays at a sensible size regardless of its
+    // native scale. manifest.scale is a final multiplier on top of that.
+    let scale = (manifest && manifest.scale) || 1.0;
+    if (manifest && manifest.fitHeight){
+      const rb = fitBounds(root);
+      const rh = rb.getSize(new THREE.Vector3()).y;
+      if (rh > 0) scale *= manifest.fitHeight / rh;
+    }
+    const info = finishLoad(root, g.animations || [], scale, url);
+    done && done(info);
+  },
+  xhr => { if (xhr.total) setStatus(`loading ${Math.round(100*xhr.loaded/xhr.total)}%`); },
+  e => { setStatus('load failed'); setErr(String(e)); });
+}
+
+function finishLoad(root, clips, scale, url){
+  clearModel();
+  // orientation: rotate so model faces -Z (game forward = -Z in our coord system
+  // is "nose"; from behind the chase cam the face is toward the horizon)
+  const wrap = new THREE.Group();
+  const man = manifest || {};
+  if (man.orientation === 'facing-positive-z') root.rotation.y = Math.PI;
+  else if (man.orientation === 'facing-positive-x') root.rotation.y = -Math.PI/2;
+  else if (man.orientation === 'facing-negative-x') root.rotation.y = Math.PI/2;
+  wrap.add(root);
+  const info = centerAndFit(wrap, scale);
+  scene.add(wrap);
+  modelRoot = wrap;
+  clipsStore = clips;
+  let triCount = 0, meshCount = 0;
+  wrap.traverse(o => { if (o.isMesh){ meshCount++;
+    const g = o.geometry;
+    triCount += (g.index ? g.index.count : g.attributes.position.count) / 3; }});
+  statsEl.textContent =
+    `file: ${url}\n` +
+    `meshes: ${meshCount}\n` +
+    `tris: ~${Math.round(triCount).toLocaleString()}\n` +
+    `size: ${(info.size.x * scale).toFixed(2)} × ${(info.size.y * scale).toFixed(2)} × ${(info.size.z * scale).toFixed(2)} (fit)\n` +
+    `clips: ${clips.length}`;
+  populateAnims(clips);
+  if (clips.length){
+    mixer = new THREE.AnimationMixer(wrap);
+    const def = (man.defaultAnim && clips.find(c=>c.name===man.defaultAnim)) || clips[0];
+    playClip(def.name || 'clip0');
+  }
+  setErr('');
+  setStatus('ready');
+  return {url, meshes: meshCount, tris: Math.round(triCount), clips: clips.length, size: info.size};
+}
+
+// .obj fallback (geometry only, no animations)
+function loadOBJ(url){
+  setStatus('loading OBJ ' + url + ' (geometry only)');
+  fetch(url).then(r => r.text()).then(txt => {
+    const {Object3D, apply} = parseOBJ(txt);
+    // simple: one mesh with a basic material (no mtl parsing here)
+    const mat = new THREE.MeshLambertMaterial({color: 0x99aabb});
+    Object3D.traverse(o=>{ if (o.isMesh){ o.material = mat; }});
+    const clips = [];
+    const info = finishLoad(Object3D, clips, (manifest&&manifest.scale)||1, url);
+    info.note = 'OBJ = static geometry (no animations)';
+    statsEl.textContent += '\n' + info.note;
+  }).catch(e => { setStatus('OBJ failed'); setErr(String(e)); });
+}
+
+// minimal OBJ parser (v / f, triangles + quads)
+function parseOBJ(txt){
+  const verts = [];
+  const groups = [];
+  let cur = null;
+  const lines = txt.split('\n');
+  for (const line of lines){
+    if (!line || line[0] === '#') continue;
+    const p = line.trim().split(/\s+/);
+    if (p[0] === 'v') verts.push(parseFloat(p[1]), parseFloat(p[2]), parseFloat(p[3]));
+    else if (p[0] === 'g' || p[0] === 'o'){
+      cur = []; groups.push(cur);
+    } else if (p[0] === 'f' && cur !== null){
+      const idx = [];
+      for (let i=1;i<p.length;i++){
+        const v = parseInt(p[i].split('/')[0]) - 1;
+        if (idx.length===0) idx.push(v,v,v); else idx.push(v);
+      }
+      cur.push(idx);
+    }
+  }
+  const root = new THREE.Group();
+  for (const faces of groups){
+    if (!faces.length) continue;
+    const pos = [];
+    for (const f of faces){
+      // triangulate fan
+      for (let i=1;i<f.length-1;i++){
+        for (const vi of [f[0], f[i], f[i+1]])
+          pos.push(verts[vi*3], verts[vi*3+1], verts[vi*3+2]);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.computeVertexNormals();
+    root.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({color:0x99aabb})));
+  }
+  return {Object3D: root};
+}
+
+// ---- drag & drop ------------------------------------------------------------
+window.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('drop'); });
+window.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('drop'); });
+window.addEventListener('drop', e => {
+  e.preventDefault(); document.body.classList.remove('drop');
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!f) return;
+  const name = f.name.toLowerCase();
+  const url = URL.createObjectURL(f);
+  setFile(name);
+  manifest = {file: name, scale: 1.0, orientation: 'facing-negative-z'};
+  if (name.endsWith('.glb') || name.endsWith('.gltf')) loadGLB(url);
+  else if (name.endsWith('.obj')) loadOBJ(url);
+  else setErr('Unsupported file type: ' + name + ' (use .glb/.gltf/.obj)');
+});
+
+// ---- boot -------------------------------------------------------------------
+let manifest = null;
+const qp = new URLSearchParams(location.search);
+const qpFile = qp.get('file');
+// manifest lives at <root>/models/manifest.json; viewer is in <root>/tools/
+// so a manifest-relative model file ("astro/xbot.glb") maps to ../models/<file>
+const manifestDir = '../models/';
+function resolveModel(f){
+  if(!f) return f;
+  if(/^(https?:|\/)/.test(f)) return f;   // absolute or url
+  return manifestDir + f;
+}
+
+fetch(manifestDir + 'manifest.json')
+  .then(r => r.ok ? r.json() : Promise.reject('manifest: HTTP ' + r.status))
+  .then(m => { manifest = m; setFile(m.file);
+    const f = resolveModel(qpFile || m.file);
+    setFile(f);
+    if (f.toLowerCase().endsWith('.obj')) loadOBJ(f);
+    else loadGLB(f, info => {
+      if (qp.get('anim')) setTimeout(() => {
+        const opt = [...animSel.options].find(o=>o.value===qp.get('anim'));
+        if (opt){ animSel.value = opt.value; playClip(opt.value); }
+      }, 200);
+    });
+  })
+  .catch(e => {
+    setStatus('manifest missing — waiting for drop or ?file=');
+    setErr(String(e));
+    if (qpFile) loadGLB(qpFile);
+  });
+
+// ---- resize + loop ----------------------------------------------------------
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+resize();
+applyCam();
+
+(function loop(){
+  requestAnimationFrame(loop);
+  const dt = clock.getDelta();
+  if (mixer) mixer.update(dt);
+  if (turn) ctrl.theta += dt * 0.4, applyCam();
+  renderer.render(scene, camera);
+})();
+</script>
+</body>
+</html>

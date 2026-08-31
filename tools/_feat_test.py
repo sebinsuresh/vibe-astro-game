@@ -232,6 +232,7 @@ js("featSet('sparks', true)")
 
 print("== menu + persistence ==")
 rows = int(js("document.querySelectorAll('.mrow').length"))
+expect_rows = int(js("Object.keys(FEATURES).length"))   # keep in sync with features.js
 # render a boost frame as the blurred backdrop, then open the menu over it
 js(RESET + "({x:0,y:14,z:60})")
 js("for(let i=0;i<300;i++){updateFlight(1/60,{KeyW:true,ShiftLeft:true}); updateFlames(0,vel.length(),1,true); updateSparks(1/60,vel.length(),1); updateCamera(1/60,astro.position);} renderer.render(scene,camera); 'ok'")
@@ -240,7 +241,7 @@ shown = js("document.getElementById('menu').classList.contains('show')")
 p.screenshot(f"{OUT}/menu.jpg", fmt="jpeg", quality=85)   # capture WHILE the menu is shown
 js("featToggle('dive'); 'ok'")
 saved = js("(JSON.parse(localStorage.getItem('astrofly.feats.v1'))||{}).dive")
-check("menu", rows == 12 and shown is True and saved is False, f"rows={rows} shown={shown} dive persisted={saved}")
+check("menu", rows == expect_rows and shown is True and saved is False, f"rows={rows}/{expect_rows} shown={shown} dive persisted={saved}")
 js("featToggle('dive'); menuHide(); 'ok'")
 
 # gameplay screenshot with everything ON (boosting)

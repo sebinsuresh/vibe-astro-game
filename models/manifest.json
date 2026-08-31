@@ -1,0 +1,10 @@
+{
+  "file": "astro/xbot.glb",
+  "orientation": "facing-negative-z",
+  "scale": 1.0,
+  "fitHeight": 2.0,
+  "rootNode": null,
+  "defaultAnim": "idle",
+  "provenance": "Xbot — three.js CC0 example asset (mrdoob/three.js, examples/models/gltf/Xbot.glb). PROVISIONAL stand-in: no legal no-login *animated* Astro Boy exists on free sources (verified via Sketchfab API 2026-08-30). Drop a real Astro Boy .glb into /models/astro/ and update 'file' to swap it in.",
+  "license": "CC0 (public domain) via three.js sample assets"
+}

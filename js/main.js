@@ -8,6 +8,9 @@ const clock = new THREE.Clock();
 let t = 0;
 let _lastImpactT = 0;   // to fire a spark burst on a FRESH wall clip
 
+// load the character model (async; falls back to the procedural body on error)
+if(typeof initModel === 'function') initModel();
+
 function animate(){
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
@@ -26,12 +29,13 @@ function animate(){
   }
   _lastImpactT = impact.t;
 
-  // VFX + pose markers
+  // VFX + pose + model markers
   updateFlames(t, flight.speed, flight.thrust, flight.boost);
   updateJets(dt, flight.strafe);
   updateSparks(dt, flight.speed, flight.thrust);
   updateBursts(dt);
   updateStreaks(dt, flight.speed, flight.boost);
+  if(typeof updateModelAnim === 'function') updateModelAnim(dt, flight);
   updateMarkers();
 
   // rings + camera + HUD
