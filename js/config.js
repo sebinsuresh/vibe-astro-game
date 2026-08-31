@@ -79,8 +79,8 @@ const KEY_TURN_BOOST = 3.0;  // … while boosting
 const CAM_BANK     = 0.7;    // camera bank factor (share of character roll)
 const AHEAD_PER_SPEED = 0.25;// look-ahead metres per m/s
 const AHEAD_MAX    = 8;      // cap on look-ahead distance
-const SHAKE_AMP    = 0.05;   // speed shake amplitude (m) at cruise
-const SHAKE_AMP_BOOST = 0.10;// … while boosting
+const SHAKE_AMP    = 0.012;  // speed shake amplitude (m) at cruise — subtle
+const SHAKE_AMP_BOOST = 0.030;// … while boosting (still subtle)
 
 // ---- effects ----
 const SPARKS = 70;                 // spark-trail particle pool
