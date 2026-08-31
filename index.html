@@ -7,6 +7,11 @@
   html,body{margin:0;padding:0;overflow:hidden;background:#dfe6ec;font-family:'Segoe UI',system-ui,sans-serif;}
   #hud{position:fixed;top:14px;left:16px;color:#3a4754;font-size:14px;pointer-events:none;text-shadow:0 1px 2px rgba(255,255,255,.6);z-index:5;}
   #hud .big{font-size:22px;font-weight:600;color:#24303c;}
+  #boostrow{margin-top:8px;}
+  #boostlabel{font-size:11px;font-weight:700;letter-spacing:1.5px;color:#5a6a78;margin-bottom:3px;}
+  #boostbar{position:relative;width:150px;height:9px;border-radius:5px;background:rgba(255,255,255,.55);box-shadow:inset 0 1px 2px rgba(40,60,80,.25);overflow:hidden;}
+  #boostfill{position:absolute;left:0;top:0;height:100%;width:100%;border-radius:5px;background:linear-gradient(90deg,#ff7a1a,#ffc01a);transition:width .08s linear;box-shadow:0 0 8px rgba(255,140,26,.5);}
+  #boostfill.low{background:linear-gradient(90deg,#d63a2a,#e06a2a);}
   #rings{position:fixed;top:14px;right:16px;color:#3a4754;font-size:14px;text-align:right;pointer-events:none;text-shadow:0 1px 2px rgba(255,255,255,.6);z-index:5;}
   #rings .big{font-size:22px;font-weight:600;color:#c2452f;}
   #hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);color:#4a5866;font-size:13px;background:rgba(255,255,255,.55);padding:6px 14px;border-radius:8px;pointer-events:none;transition:opacity 1s;z-index:5;}
@@ -55,12 +60,16 @@
 <div id="hud">
   <div class="big" id="speed">0.0 m/s</div>
   <div>ALT <span id="alt">0</span>m</div>
+  <div id="boostrow">
+    <div id="boostlabel">BOOST</div>
+    <div id="boostbar"><div id="boostfill"></div></div>
+  </div>
 </div>
 <div id="rings">
   <div class="big"><span id="ringcount">0</span>/25</div>
   <div>RINGS</div>
 </div>
-<div id="hint">MOUSE steer · W S thrust · R F · SHIFT boost · ESC menu</div>
+<div id="hint">MOUSE steer · W S thrust · R F · SHIFT boost (watch the meter) · ESC menu</div>
 <div id="paused"></div>
 <div id="menu">
   <div class="panel">

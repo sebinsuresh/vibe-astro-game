@@ -63,7 +63,7 @@ RESET = """(function(resetPos){
   yaw=0; yawRate=0; steerInput=0; vel.set(0,0,0);
   astro.position.set(resetPos.x,resetPos.y,resetPos.z);
   tilt.rotation.set(0,0,0); camHeading=0; camPitch=0.34; camDist=10;
-  impact.t=0; return 'reset';
+  impact.t=0; if(typeof boostMeter!=='undefined') boostMeter=1; return 'reset';
 })"""
 def drive(n, keys_js):
     return js(f"""(function(){{
@@ -186,11 +186,12 @@ js("featSet('arms', true)")
 
 print("== 9. boost streaks ==")
 js("featSet('streaks', true); " + RESET + "({x:0,y:14,z:60})")
-js("for(let i=0;i<300;i++){updateFlight(1/60,{KeyW:true,ShiftLeft:true}); updateStreaks(1/60, vel.length(), true);} 'ok'")
-st_on = float(js("streakMat.opacity.toFixed(2)"))
+# track PEAK opacity across the boost run: the meter drains after ~2.9s so
+# streaks fade by the end; the feature is proven by the peak it reached.
+st_on = float(js("(function(){let pk=0; for(let i=0;i<300;i++){updateFlight(1/60,{KeyW:true,ShiftLeft:true}); updateStreaks(1/60, vel.length(), true); pk=Math.max(pk,streakMat.opacity);} return pk.toFixed(2);})()"))
 js("featSet('streaks', false); for(let i=0;i<90;i++){updateStreaks(1/60, vel.length(), true);} 'ok'")
 st_off = float(js("streakMat.opacity.toFixed(2)"))
-check("streaks", st_on > 0.2 and st_off < 0.02, f"ON opacity={st_on} | OFF={st_off}")
+check("streaks", st_on > 0.2 and st_off < 0.02, f"ON peak-opacity={st_on} | OFF={st_off}")
 js("featSet('streaks', false)")
 
 print("== 10. impact feedback ==")

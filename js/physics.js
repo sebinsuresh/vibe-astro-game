@@ -82,8 +82,17 @@ function lerpAngle(a,b,t){
 
 // --- per-frame flight update ------------------------------------------------
 // Returns { thrust, speed, boost } for the VFX / camera.
+// boostMeter (0..1, global) gates boosting: it drains while boosting and
+// auto-refills otherwise (see hud.js for the bar).
+let boostMeter = 1;   // 1 = full, 0 = empty
+
 function updateFlight(dt, keys){
-  const boost = !!(keys['ShiftLeft'] || keys['ShiftRight']);
+  // boost only while the meter has charge; it drains while boosting and
+  // refills the moment you let go.
+  const wantBoost = !!(keys['ShiftLeft'] || keys['ShiftRight']);
+  const boost = wantBoost && boostMeter > 0.001;
+  if(boost) boostMeter = Math.max(0, boostMeter - BOOST_DRAIN*dt);
+  else      boostMeter = Math.min(1, boostMeter + BOOST_REFILL*dt);
 
   let ay=0, az=0, thrust=0;
   if(keys['KeyW']){ az+=1;  thrust+=1;   }

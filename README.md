@@ -24,7 +24,7 @@ Open `index.html` in any modern browser (or just open this repo on
 | **W / S** | Thrust forward / back |
 | **A / D** | **Strafe** left / right (side rockets, no turning) |
 | **R / F** | Ascend / descend |
-| **SHIFT** | Boost |
+| **SHIFT** | Boost (drains the **BOOST** meter; auto-refills when released) |
 | **MOUSE** | Steer · look up/down (click the page to lock) |
 | **WHEEL** | Zoom camera in / out |
 | **T** | Toggle FWD / BACK orientation markers (dev aid) |

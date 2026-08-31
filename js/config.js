@@ -27,6 +27,8 @@ const RADIUS = 0.7; // player collision radius
 const DRAG_BASE = 0.45;            // vel *= DRAG_BASE^dt  (~0.73/s retention)
 const MAX_SPEED_CRUISE = 21;
 const MAX_SPEED_BOOST  = 42;
+const BOOST_DRAIN   = 0.34;  // boost-meter drain per second while boosting
+const BOOST_REFILL  = 0.42;  // …auto-refill per second when not boosting
 const WORLD_XZ   = 380;            // hard world bounds (x/z)
 const WORLD_Y_MIN = 1.6;
 const WORLD_Y_MAX = 280;
