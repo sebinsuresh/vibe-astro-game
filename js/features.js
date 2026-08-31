@@ -19,10 +19,10 @@ const FEATURES = {
   shake:   { key: '7', on: false, name: 'Speed shake',             desc: 'Subtle high-frequency camera vibration at speed' },
   arms:    { key: '8', on: true,  name: 'Streamlined arms',        desc: 'Arms sweep back at speed, gentle idle bob at rest' },
   streaks: { key: '9', on: false, name: 'Boost speed streaks',     desc: 'Speed lines flare out at high speed / boost' },
-  impact:  { key: '0', on: true,  name: 'Impact feedback',         desc: 'Camera shake + spark burst when you clip a wall' },
+  impact:  { key: '0', on: false,  name: 'Impact feedback',         desc: 'Camera shake + spark burst when you clip a wall' },
   rings:   { key: 'q', on: true,  name: 'Ring pickup juice',       desc: 'Pop, spark burst and HUD pulse when you grab a ring' },
   sparks:  { key: 'w', on: true,  name: 'Spark trail',             desc: 'Flame spark particles behind you' },
-  model:   { key: 'e', on: true,  name: 'GLB model body',          desc: 'Character = loaded model (models/manifest.json) w/ animation clips; off = procedural chibi body' },
+  model:   { key: 'e', on: false,  name: 'GLB model body',          desc: 'Character = loaded model (models/manifest.json) w/ animation clips; off = procedural chibi body' },
 };
 const FEATURE_LIST = Object.keys(FEATURES);
 
