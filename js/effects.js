@@ -156,14 +156,14 @@ function updateStreaks(dt, s, boost){
     const over = Math.max(0, s - MAX_SPEED_CRUISE*0.55) / (MAX_SPEED_BOOST - MAX_SPEED_CRUISE*0.55);
     target = Math.min(1, over) * (boost ? 1 : 0.55);
   }
-  streakMat.opacity = THREE.MathUtils.lerp(streakMat.opacity, target*0.5, 1 - Math.pow(0.02, dt));
+  streakMat.opacity = THREE.MathUtils.lerp(streakMat.opacity, target*0.7, 1 - Math.pow(0.02, dt));
   if(streakMat.opacity < 0.01){ streaks.visible = false; return; }
   streaks.visible = true;
-  const inten = streakMat.opacity / 0.5;   // 0..1
+  const inten = streakMat.opacity / 0.7;   // 0..1
   _streakT += dt * (0.5 + 1.5*inten);
   const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov*0.5));
   const tanH = tanV * camera.aspect;
-  const segLen = (0.9 + 4.1*inten);        // longer at full boost
+  const segLen = (1.2 + 5.0*inten);        // longer at full boost
   for(let i=0;i<_streakSpokes.length;i++){
     const sp = _streakSpokes[i];
     const set = STREAK_SETS[sp.set];

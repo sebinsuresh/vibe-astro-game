@@ -21,7 +21,7 @@ Usage:
 --pre-js runs right before capture (e.g. to freeze the sim, hide overlays,
 place the camera).  All values are treated as data, never as instructions.
 """
-import argparse, base64, json, os, subprocess, sys, time, urllib.request
+import argparse, base64, json, os, re, socket, subprocess, sys, time, urllib.request
 
 try:
     import websocket  # websocket-client (in .venv; run with .venv/bin/python)
@@ -97,21 +97,30 @@ def activate_tab(ws, target_id):
         print("warn: could not activate tab:", e)
 
 
-def connect_page(url_contains, fresh=False):
-    """Find (or open) a page tab matching url_contains, return (ws, target_id)."""
+def connect_page(url_contains, fresh=False, url=None):
+    """Find (or open) a page tab matching url_contains, return (ws, target_id).
+
+    url: explicit URL to open when no matching tab exists (defaults to the
+    game root). Pass the full page URL (e.g. .../tools/model_viewer.html).
+
+    NOTE: Chrome exits when its LAST tab is closed, so closing matching tabs
+    never closes a chrome:// page; at most one New Tab is left behind (harmless).
+    """
     tabs = cdp_get("/json")
     pages = [t for t in tabs if t["type"] == "page" and url_contains in t.get("url", "")]
     if fresh and pages:
-        try:
-            urllib.request.urlopen(CDP + "/json/close/" + pages[0]["id"], timeout=5)
-            time.sleep(0.6)
-        except Exception:
-            pass
+        for t in pages:
+            try:
+                urllib.request.urlopen(CDP + "/json/close/" + t["id"], timeout=5)
+            except Exception:
+                pass
+        time.sleep(0.8)
         tabs = cdp_get("/json")
         pages = [t for t in tabs if t["type"] == "page" and url_contains in t.get("url", "")]
     if not pages:
-        # open a new tab at the first matched hint or the game root
-        newtab = cdp_put("/json/new?http://127.0.0.1:8000/index.html")
+        # open a new tab at the explicit url (or the game root)
+        target_url = url or "http://127.0.0.1:8000/index.html"
+        newtab = cdp_put("/json/new?" + target_url)
         time.sleep(0.5)
         ws = None
         for _ in range(30):
@@ -143,16 +152,24 @@ class Page:
         self.target_id = target_id
         self._n = 0
 
-    def cmd(self, method, params=None):
+    def cmd(self, method, params=None, timeout=20):
         self._n += 1
-        self.ws.send(json.dumps({"id": self._n, "method": method, "params": params or {}}))
-        while True:
-            x = json.loads(self.ws.recv())
-            if x.get("id") == self._n:
-                return x
+        try:
+            self.ws.send(json.dumps({"id": self._n, "method": method, "params": params or {}}))
+            self.ws.settimeout(timeout)
+            while True:
+                x = json.loads(self.ws.recv())
+                if x.get("id") == self._n:
+                    return x
+        except (socket.timeout, TimeoutError):
+            return {"id": self._n, "error": {"message": "CDP timeout on " + method}}
+        except websocket.WebSocketTimeoutException:
+            return {"id": self._n, "error": {"message": "CDP timeout on " + method}}
 
-    def js(self, expr):
-        r = self.cmd("Runtime.evaluate", {"expression": expr, "returnByValue": True, "awaitPromise": True})
+    def js(self, expr, timeout=20):
+        r = self.cmd("Runtime.evaluate", {"expression": expr, "returnByValue": True, "awaitPromise": True}, timeout=timeout)
+        if r.get("error"):
+            return "EVALTIMEOUT:" + str(r["error"])[:120]
         res = r.get("result", {})
         if res.get("exceptionDetails"):
             return "JSEXC:" + json.dumps(res["exceptionDetails"].get("exception", {}).get("description", ""))[:200]
@@ -167,10 +184,10 @@ class Page:
         return True
 
 
-def prepare(url_contains, fresh=False, pre_js=None, wait_js=None, wait_s=6.0):
+def prepare(url_contains, fresh=False, pre_js=None, wait_js=None, wait_s=8.0, url=None):
     wake_screen()
     focus_chrome_window()
-    ws, tid = connect_page(url_contains, fresh=fresh)
+    ws, tid = connect_page(url_contains, fresh=fresh, url=url)
     activate_tab(ws, tid)
     p = Page(ws, tid)
     if wait_js:
@@ -188,34 +205,78 @@ def prepare(url_contains, fresh=False, pre_js=None, wait_js=None, wait_s=6.0):
 
 
 def cmd_shot(a):
-    p = prepare(a.url_contains, fresh=a.fresh, pre_js=a.pre_js, wait_js=a.wait_js, wait_s=a.wait)
+    p = prepare(a.url_contains, fresh=a.fresh, pre_js=a.pre_js, wait_js=a.wait_js, wait_s=a.wait, url=a.url)
     ok = p.screenshot(a.out, fmt=a.format, quality=a.quality)
     print("shot", "OK" if ok else "FAIL", a.out)
     p.ws.close()
     sys.exit(0 if ok else 1)
 
 
+def chrome_window_geom():
+    """Return (x, y, w, h) of the Chrome window from wmctrl, else None."""
+    ok, out = run("wmctrl -lG 2>/dev/null")
+    if not ok:
+        return None
+    for l in out.splitlines():
+        parts = l.split()
+        if len(parts) >= 7 and any(h.lower() in l.lower() for h in CHROME_WIN_TITLE_HINTS):
+            # wmctrl -lG: id desktop x y w h host title...
+            return int(parts[2]), int(parts[3]), int(parts[4]), int(parts[5])
+    # fallback: largest window
+    best = None
+    for l in out.splitlines():
+        parts = l.split()
+        if len(parts) >= 7:
+            area = int(parts[4]) * int(parts[5])
+            if best is None or area > best[3]:
+                best = (int(parts[2]), int(parts[3]), int(parts[4]), int(parts[5]), area)
+    return (best[0], best[1], best[2], best[3]) if best else None
+
+
+def screen_size():
+    """Physical screen dimensions via xset q (fallback 1920x1080)."""
+    ok, out = run("xset q 2>/dev/null")
+    m = re.search(r"Dimensions:\s*(\d+)x(\d+)", out)
+    if m:
+        return int(m.group(1)), int(m.group(2))
+    return 1920, 1080
+
+
 def cmd_rec(a):
-    p = prepare(a.url_contains, fresh=a.fresh, pre_js=a.pre_js, wait_js=a.wait_js, wait_s=a.wait)
+    """Record the Chrome window by grabbing the SCREEN (x11grab).
+
+    The composited screen is ground truth: it always shows the visible
+    active tab, and is immune to the per-tab compositor throttling that
+    stalls CDP screencast / captureScreenshot on background tabs.
+    We still wake the display + focus/activate the tab first so the game
+    is what's on screen.
+    """
+    p = prepare(a.url_contains, fresh=a.fresh, pre_js=a.pre_js, wait_js=a.wait_js, wait_s=a.wait, url=a.url)
+    geom = chrome_window_geom()
+    display = os.environ.get("DISPLAY", ":0.0")
+    sw, sh = screen_size()
+    if geom:
+        x, y, w, h = geom
+        # clamp to the screen (x11grab rejects areas outside the screen;
+        # window may extend past the right/bottom edge)
+        w = min(w, sw - x)
+        h = min(h, sh - y)
+        src = f"{display}+{x},{y}"
+        size = f"{w}x{h}"
+        print(f"recording screen region {size}+{x},{y} (screen {sw}x{sh})")
+    else:
+        src, size = display, f"{sw}x{sh}"
+        print("warn: could not resolve window geom, grabbing full screen")
     proc = subprocess.Popen(
-        ["ffmpeg", "-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", "30",
-         "-i", "pipe:0", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", a.out],
-        stdin=subprocess.PIPE)
-    start = time.time()
-    frames = 0
-    while time.time() - start < a.seconds:
-        d = p.cmd("Page.captureScreenshot", {"format": "jpeg", "quality": 90})
-        data = d.get("result", {}).get("data")
-        if data:
-            proc.stdin.write(base64.b64decode(data))
-            frames += 1
-        else:
-            time.sleep(0.03)
-    proc.stdin.close()
-    proc.wait()
+        ["ffmpeg", "-y", "-loglevel", "error", "-f", "x11grab", "-framerate", "30",
+         "-video_size", size, "-i", src, "-t", str(a.seconds),
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", a.out],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    err = proc.wait()
     p.ws.close()
-    print("rec", "OK", a.out, f"{frames} frames")
-    sys.exit(0)
+    ok = err == 0 and os.path.exists(a.out) and os.path.getsize(a.out) > 1000
+    print("rec", "OK" if ok else "FAIL", a.out, f"({a.seconds}s, exit={err})")
+    sys.exit(0 if ok else 1)
 
 
 if __name__ == "__main__":
@@ -224,6 +285,7 @@ if __name__ == "__main__":
 
     def add_common(sp):
         sp.add_argument("--url-contains", required=True)
+        sp.add_argument("--url", default=None, help="explicit URL to open when no matching tab exists (fresh)")
         sp.add_argument("--pre-js", default=None)
         sp.add_argument("--wait-js", default=None)
         sp.add_argument("--wait", type=float, default=8.0)

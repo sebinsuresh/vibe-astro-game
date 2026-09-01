@@ -186,12 +186,13 @@ js("featSet('arms', true)")
 
 print("== 9. boost streaks ==")
 js("featSet('streaks', true); " + RESET + "({x:0,y:14,z:60})")
-# track PEAK opacity across the boost run: the meter drains after ~2.9s so
-# streaks fade by the end; the feature is proven by the peak it reached.
-st_on = float(js("(function(){let pk=0; for(let i=0;i<300;i++){updateFlight(1/60,{KeyW:true,ShiftLeft:true}); updateStreaks(1/60, vel.length(), true); pk=Math.max(pk,streakMat.opacity);} return pk.toFixed(2);})()"))
+# peak opacity over a 3s boost run (shorter than the full ~2.9s meter, so
+# the streaks are at full strength when the peak is sampled; the meter
+# drains after that, which the gate test below checks separately).
+st_on = float(js("(function(){let pk=0; for(let i=0;i<180;i++){updateFlight(1/60,{KeyW:true,ShiftLeft:true}); updateStreaks(1/60, vel.length(), true); pk=Math.max(pk,streakMat.opacity);} return pk.toFixed(2);})()"))
 js("featSet('streaks', false); for(let i=0;i<90;i++){updateStreaks(1/60, vel.length(), true);} 'ok'")
 st_off = float(js("streakMat.opacity.toFixed(2)"))
-check("streaks", st_on > 0.2 and st_off < 0.02, f"ON peak-opacity={st_on} | OFF={st_off}")
+check("streaks", st_on > 0.35 and st_off < 0.02, f"ON peak-opacity={st_on} | OFF={st_off}")
 js("featSet('streaks', false)")
 
 print("== 10. impact feedback ==")

@@ -406,7 +406,7 @@ let manifest = null;
 const qp = new URLSearchParams(location.search);
 const qpFile = qp.get('file');
 // manifest lives at <root>/models/manifest.json; viewer is in <root>/tools/
-// so a manifest-relative model file ("astro/xbot.glb") maps to ../models/<file>
+// so a manifest-relative model file ("astro/astro-boy.glb") maps to ../models/<file>
 const manifestDir = '../models/';
 function resolveModel(f){
   if(!f) return f;
