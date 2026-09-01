@@ -109,17 +109,31 @@ function updateBursts(dt){
 }
 
 // ---------- boost speed streaks (feature "streaks") -------------------------
-// Star-warp: short bright line segments that STREAM OUTWARD from the
-// vanishing point toward the screen edges. Lines live on fixed view rays
-// (two spoke sets, phase-staggered) and each segment's head travels outward;
-// per-vertex colors fade dark→bright tail→head so the flow reads clearly.
-// The whole group is parented to the camera (camera space, so FOV-warp and
-// banking apply for free) with additive blending.
+// Star-warp: short bright THICK lines (quads) that STREAM OUTWARD from the
+// vanishing point toward the screen edges. Each spoke is two quads (tail +
+// head) offset perpendicular to the ray by a screen-constant amount (in the
+// shader, via clip-space offset) so the streaks stay a readable width at any
+// depth — WebGL can't thicken LineSegments. Per-vertex alpha fades tail->head.
 const streakGroup = new THREE.Group();
 camera.add(streakGroup);
-const streakMat = new THREE.LineBasicMaterial({
-  vertexColors: true, transparent: true, opacity: 0,
-  depthWrite: false, blending: THREE.AdditiveBlending
+const streakMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, depthTest: true, blending: THREE.NormalBlending,
+  uniforms: { uWidth: { value: 3.0 } },
+  vertexShader: [
+    "attribute vec4 color; attribute float side;",
+    "uniform float uWidth; varying vec4 vC;",
+    "void main(){",
+    "  vC = color;",
+    "  vec4 mv = modelViewMatrix * vec4(position, 1.0);",
+    "  vec4 cp = projectionMatrix * mv;",
+    "  // screen-space perpendicular to the (camera-attached) streak axis",
+    "  vec2 d = normalize(vec2(mv.x, mv.y) + 1e-4);",
+    "  vec2 off = vec2(-d.y, d.x) * side * uWidth * mv.z;   // mv.z<0 -> +px, depth-const",
+    "  cp.xy += (off / (0.5 * max(cp.w, 0.0001))) * 0.5;",
+    "  gl_Position = cp;",
+    "}"
+  ].join("\n"),
+  fragmentShader: "varying vec4 vC; void main(){ gl_FragColor = vC; }"
 });
 const STREAK_SETS = [ { n: STREAKS, spacing: 10.5, phase: 0 },
                       { n: Math.floor(STREAKS/2), spacing: 15, phase: 4.7 } ];
@@ -127,23 +141,28 @@ const _streakSpokes = [];
 STREAK_SETS.forEach((set, si) => {
   for(let i=0;i<set.n;i++){
     const ang = (i + Math.random()*0.6) / set.n * Math.PI*2;
-    const rad = 0.3 + Math.sqrt(Math.random())*0.7;    // 0.3..1.0 of half-screen, avoid dead centre
+    const rad = 0.3 + Math.sqrt(Math.random())*0.7;    // 0.3..1.0 of half-screen
     _streakSpokes.push({
       set: si,
       dir: new THREE.Vector3(Math.cos(ang)*rad, Math.sin(ang)*rad, -1),
-      vel: 0.75 + Math.random()*0.6,                    // per-spoke speed jitter
+      vel: 0.75 + Math.random()*0.6,
       phase: Math.random()*set.spacing,
-      hue: 0.92 + Math.random()*0.08                    // slight cool variation
+      hue: 0.90 + Math.random()*0.10                    // slight cool variation
     });
   }
 });
 const _STREAK_FAR = 18;   // segment travel range along a spoke
-const streakPos = new Float32Array(_streakSpokes.length*2*3);
-const streakCol = new Float32Array(_streakSpokes.length*2*3);
+// one quad per spoke: 4 corners (tail-left, tail-right, head-right, head-left)
+const streakPos = new Float32Array(_streakSpokes.length*4*3);
+const streakCol = new Float32Array(_streakSpokes.length*4*4);
+const streakSide = new Float32Array(_streakSpokes.length*4);
+for(let i=0;i<_streakSpokes.length;i++){ streakSide[i*4]=-1; streakSide[i*4+1]=1; streakSide[i*4+2]=1; streakSide[i*4+3]=-1; }
 const streakGeo = new THREE.BufferGeometry();
 streakGeo.setAttribute('position', new THREE.BufferAttribute(streakPos, 3));
-streakGeo.setAttribute('color', new THREE.BufferAttribute(streakCol, 3));
-const streaks = new THREE.LineSegments(streakGeo, streakMat);
+streakGeo.setAttribute('color', new THREE.BufferAttribute(streakCol, 4));
+streakGeo.setAttribute('side', new THREE.BufferAttribute(streakSide, 1));
+const streaks = new THREE.Mesh(streakGeo, streakMat);
+streakGeo.setIndex([0,1,2, 0,2,3]);
 streaks.visible = false;
 streaks.frustumCulled = false;   // camera-attached; never cull
 streakGroup.add(streaks);
@@ -156,14 +175,15 @@ function updateStreaks(dt, s, boost){
     const over = Math.max(0, s - MAX_SPEED_CRUISE*0.55) / (MAX_SPEED_BOOST - MAX_SPEED_CRUISE*0.55);
     target = Math.min(1, over) * (boost ? 1 : 0.55);
   }
-  streakMat.opacity = THREE.MathUtils.lerp(streakMat.opacity, target*0.7, 1 - Math.pow(0.02, dt));
+  streakMat.opacity = THREE.MathUtils.lerp(streakMat.opacity, target*0.9, 1 - Math.pow(0.02, dt));
   if(streakMat.opacity < 0.01){ streaks.visible = false; return; }
   streaks.visible = true;
-  const inten = streakMat.opacity / 0.7;   // 0..1
+  const inten = streakMat.opacity / 0.9;   // 0..1
   _streakT += dt * (0.5 + 1.5*inten);
   const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov*0.5));
   const tanH = tanV * camera.aspect;
-  const segLen = (1.2 + 5.0*inten);        // longer at full boost
+  const segLen = (2.2 + 6.5*inten);        // longer at full boost
+  streakMat.uniforms.uWidth.value = 2.0 + 2.5*inten;   // thicker at full boost
   for(let i=0;i<_streakSpokes.length;i++){
     const sp = _streakSpokes[i];
     const set = STREAK_SETS[sp.set];
@@ -173,15 +193,23 @@ function updateStreaks(dt, s, boost){
     _streakV3.set(sp.dir.x*tanH, sp.dir.y*tanV, -1);
     const head = ((_streakT*(10 + 24*inten)*sp.vel + sp.phase + set.phase) % _STREAK_FAR) + 0.5;
     const tail = Math.max(0.0, head - segLen);
-    // fade in away from the vanishing point, fade out near the screen edge
     const fade = THREE.MathUtils.smoothstep(head, 0.5, 2.5)
                * (1 - THREE.MathUtils.smoothstep(head, _STREAK_FAR*0.72, _STREAK_FAR));
-    const g = inten * fade;
-    const i6 = i*6;
-    streakPos[i6]   = _streakV3.x*tail; streakPos[i6+1] = _streakV3.y*tail; streakPos[i6+2] = _streakV3.z*tail;
-    streakPos[i6+3] = _streakV3.x*head; streakPos[i6+4] = _streakV3.y*head; streakPos[i6+5] = _streakV3.z*head;
-    streakCol[i6]   = 0; streakCol[i6+1] = 0; streakCol[i6+2] = 0;      // dark tail
-    streakCol[i6+3] = g*sp.hue; streakCol[i6+4] = g; streakCol[i6+5] = g; // bright head
+    const aTail = inten * fade * 0.10;     // tail end (faint)
+    const aHead = inten * fade;            // head end (bright)
+    const i4 = i*12;
+    const tx=_streakV3.x*tail, ty=_streakV3.y*tail, tz=_streakV3.z*tail;
+    const hx=_streakV3.x*head, hy=_streakV3.y*head, hz=_streakV3.z*head;
+    // 4 corners: 0 tail(-1), 1 tail(+1), 2 head(+1), 3 head(-1)
+    streakPos[i4]   = tx; streakPos[i4+1]   = ty; streakPos[i4+2]   = tz;
+    streakPos[i4+3] = tx; streakPos[i4+4]   = ty; streakPos[i4+5]   = tz;
+    streakPos[i4+6] = hx; streakPos[i4+7]   = hy; streakPos[i4+8]   = hz;
+    streakPos[i4+9] = hx; streakPos[i4+10]  = hy; streakPos[i4+11]  = hz;
+    const c = 1 - 0.08*(1-sp.hue);         // cool-white
+    streakCol[i4]   = c; streakCol[i4+1]   = c; streakCol[i4+2]   = c; streakCol[i4+3]   = aTail;
+    streakCol[i4+4] = c; streakCol[i4+5]   = c; streakCol[i4+6]   = c; streakCol[i4+7]   = aTail;
+    streakCol[i4+8] = 1; streakCol[i4+9]   = 1; streakCol[i4+10]  = 1; streakCol[i4+11]  = aHead;
+    streakCol[i4+12]= 1; streakCol[i4+13]  = 1; streakCol[i4+14]  = 1; streakCol[i4+15]  = aHead;
   }
   streakGeo.attributes.position.needsUpdate = true;
   streakGeo.attributes.color.needsUpdate = true;

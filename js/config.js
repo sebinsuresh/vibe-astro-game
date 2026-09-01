@@ -86,4 +86,4 @@ const SHAKE_AMP_BOOST = 0.030;// … while boosting (still subtle)
 
 // ---- effects ----
 const SPARKS = 70;                 // spark-trail particle pool
-const STREAKS = 48;                // boost speed-line pool
+const STREAKS = 150;               // boost speed-line pool (dense star-warp)
