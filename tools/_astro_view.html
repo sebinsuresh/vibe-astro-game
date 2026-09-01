@@ -1,0 +1,42 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0"><canvas id="c"></canvas>
+<script src="/lib/three.min.js"></script>
+<script src="/lib/GLTFLoader.js"></script>
+<script>
+const renderer = new THREE.WebGLRenderer({canvas: document.getElementById('c'), antialias:true, preserveDrawingBuffer:true});
+renderer.setSize(700, 700);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2a3340);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.001, 100);
+scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+const dl = new THREE.DirectionalLight(0xffffff, 1.0); dl.position.set(1,2,1); scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0xffffff, 0.5); dl2.position.set(-1,0.5,-1); scene.add(dl2);
+// 1m reference: grid on ground + 1m tall colored cube to the model's right
+const grid = new THREE.GridHelper(4, 4, 0x66ccff, 0x334455); scene.add(grid);
+const ref = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.0, 0.5), new THREE.MeshBasicMaterial({color:0x00ff88}));
+ref.position.set(1.6, 0.5, 0); scene.add(ref);
+// text-like labels via sprites is overkill; the green 1m cube IS the scale reference
+let model = null;
+window.__view = function(angle){
+  if(!model) return 'notloaded';
+  const r = 3.4;
+  const pos = { negz:[0,1,-r], posz:[0,1,r], posx:[r,1,0], negx:[-r,1,0] }[angle] || [0,1,-r];
+  camera.position.set(pos[0], pos[1], pos[2]);
+  camera.lookAt(0,1,0);
+  renderer.render(scene, camera);
+  return 'ok';
+};
+new THREE.GLTFLoader().load('/models/astro/astro-boy.glb', (gltf)=>{
+  const g = gltf.scene; g.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(g);
+  const size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+  const s = 2.0/size.y;
+  g.scale.setScalar(s);
+  g.position.set(-ctr.x*s, -box.min.y*s, -ctr.z*s);
+  model = g; scene.add(g);
+  camera.position.set(0,1,-3.4); camera.lookAt(0,1,0); renderer.render(scene,camera);
+  // report material state after extension handling
+  let mats = [];
+  g.traverse(o=>{ if(o.isMesh) mats.push(o.material && o.material.name + ' map=' + !!(o.material.map)); });
+  document.title = 'READY ' + JSON.stringify({size:[size.x,size.y,size.z], mats});
+}, undefined, (e)=>{ document.title = 'ERR ' + (e.message||e); });
+</script></body></html>

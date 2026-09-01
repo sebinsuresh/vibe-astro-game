@@ -22,7 +22,7 @@ const FEATURES = {
   impact:  { key: '0', on: false,  name: 'Impact feedback',         desc: 'Camera shake + spark burst when you clip a wall' },
   rings:   { key: 'q', on: true,  name: 'Ring pickup juice',       desc: 'Pop, spark burst and HUD pulse when you grab a ring' },
   sparks:  { key: 'w', on: true,  name: 'Spark trail',             desc: 'Flame spark particles behind you' },
-  model:   { key: 'e', on: false,  name: 'GLB model body',          desc: 'Character = loaded model (models/manifest.json) w/ animation clips; off = procedural chibi body' },
+  model:   { key: 'e', on: true,  name: 'GLB model body',          desc: 'Character = Astro Boy (static model, CC BY) from models/manifest.json; off = procedural chibi body' },
 };
 const FEATURE_LIST = Object.keys(FEATURES);
 

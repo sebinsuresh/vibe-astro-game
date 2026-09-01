@@ -110,7 +110,9 @@ async function initModel(){
     wrap.position.x = -(box.min.x + box.max.x) * 0.5 * s;
     wrap.position.y = -box.min.y * s;         // feet at y=0 (tilt space)
     wrap.position.z = -(box.min.z + box.max.z) * 0.5 * s;
-    _modelBobBase = 0;                        // hover-bob baseline (feet line)
+    _modelBobBase = wrap.position.y;          // hover-bob baseline = fitted feet line
+                                               // (NOT 0 — only holds if the model's
+                                               // local origin sits on its feet)
 
     // flame VFX + jet light (tilt-space, feet baseline) already read as foot jets
 

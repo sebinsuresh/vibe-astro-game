@@ -183,3 +183,4 @@ still screenshots instead of a choppy video).
 
 - Inspired by the prototype in the X post above (original by ShawnTheMiller).
 - three.js by the [three.js authors](https://github.com/mrdoob/three.js) (MIT).
+- Character model: “Astro Boy” by [Daniel Pachon](https://sketchfab.com/3d-models/astro-boy-528785036ccf41248f5cf6afb0a5f20d) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
