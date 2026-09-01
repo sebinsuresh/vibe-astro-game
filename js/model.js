@@ -124,7 +124,8 @@ async function initModel(){
     // choose which body to show
     modelState.active = featOn('model');
     applyBodyVisibility();
-    console.log('[model] loaded', man.file, 'clips:', clips.map(c=>c.name).join(','));
+    // (state is inspectable via modelState; no console.log — the regression
+    //  suite treats any boot console message as an error)
   }catch(e){
     console.warn('[model] failed to load model — using procedural body.', e);
     modelState.ready = false;

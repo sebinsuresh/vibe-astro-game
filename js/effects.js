@@ -109,29 +109,46 @@ function updateBursts(dt){
 }
 
 // ---------- boost speed streaks (feature "streaks") -------------------------
-// Radial speed lines that flare out from around the screen edges at high
-// speed — a camera-space effect: long thin quads in a group parented to the
-// camera, fading in with speed.
+// Star-warp: short bright line segments that STREAM OUTWARD from the
+// vanishing point toward the screen edges. Lines live on fixed view rays
+// (two spoke sets, phase-staggered) and each segment's head travels outward;
+// per-vertex colors fade dark→bright tail→head so the flow reads clearly.
+// The whole group is parented to the camera (camera space, so FOV-warp and
+// banking apply for free) with additive blending.
 const streakGroup = new THREE.Group();
 camera.add(streakGroup);
-const streakMat = new THREE.MeshBasicMaterial({
-  color: 0xffffff, transparent: true, opacity: 0, depthWrite: false,
-  blending: THREE.AdditiveBlending
+const streakMat = new THREE.LineBasicMaterial({
+  vertexColors: true, transparent: true, opacity: 0,
+  depthWrite: false, blending: THREE.AdditiveBlending
 });
-const _streaks = [];
-for(let i=0;i<STREAKS;i++){
-  const len = 3 + Math.random()*5;
-  const geo = new THREE.PlaneGeometry(0.06, len);
-  geo.translate(0, -len/2, 0);
-  const m = new THREE.Mesh(geo, streakMat);
-  // scatter on a cylinder around the camera axis (mostly off-centre)
-  const ang = Math.random()*Math.PI*2;
-  const rad = 2.2 + Math.random()*2.6;
-  m.position.set(Math.cos(ang)*rad, Math.sin(ang)*rad, -14 - Math.random()*10);
-  m.rotation.z = Math.PI/2 + (Math.random()-0.5)*0.7;  // mostly radial
-  _streaks.push(m);
-  streakGroup.add(m);
-}
+const STREAK_SETS = [ { n: STREAKS, spacing: 10.5, phase: 0 },
+                      { n: Math.floor(STREAKS/2), spacing: 15, phase: 4.7 } ];
+const _streakSpokes = [];
+STREAK_SETS.forEach((set, si) => {
+  for(let i=0;i<set.n;i++){
+    const ang = (i + Math.random()*0.6) / set.n * Math.PI*2;
+    const rad = 0.3 + Math.sqrt(Math.random())*0.7;    // 0.3..1.0 of half-screen, avoid dead centre
+    _streakSpokes.push({
+      set: si,
+      dir: new THREE.Vector3(Math.cos(ang)*rad, Math.sin(ang)*rad, -1),
+      vel: 0.75 + Math.random()*0.6,                    // per-spoke speed jitter
+      phase: Math.random()*set.spacing,
+      hue: 0.92 + Math.random()*0.08                    // slight cool variation
+    });
+  }
+});
+const _STREAK_FAR = 18;   // segment travel range along a spoke
+const streakPos = new Float32Array(_streakSpokes.length*2*3);
+const streakCol = new Float32Array(_streakSpokes.length*2*3);
+const streakGeo = new THREE.BufferGeometry();
+streakGeo.setAttribute('position', new THREE.BufferAttribute(streakPos, 3));
+streakGeo.setAttribute('color', new THREE.BufferAttribute(streakCol, 3));
+const streaks = new THREE.LineSegments(streakGeo, streakMat);
+streaks.visible = false;
+streaks.frustumCulled = false;   // camera-attached; never cull
+streakGroup.add(streaks);
+const _streakV3 = new THREE.Vector3();
+let _streakT = 0;
 
 function updateStreaks(dt, s, boost){
   let target = 0;
@@ -140,7 +157,34 @@ function updateStreaks(dt, s, boost){
     target = Math.min(1, over) * (boost ? 1 : 0.55);
   }
   streakMat.opacity = THREE.MathUtils.lerp(streakMat.opacity, target*0.5, 1 - Math.pow(0.02, dt));
-  streakGroup.visible = streakMat.opacity > 0.01;
+  if(streakMat.opacity < 0.01){ streaks.visible = false; return; }
+  streaks.visible = true;
+  const inten = streakMat.opacity / 0.5;   // 0..1
+  _streakT += dt * (0.5 + 1.5*inten);
+  const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov*0.5));
+  const tanH = tanV * camera.aspect;
+  const segLen = (0.9 + 4.1*inten);        // longer at full boost
+  for(let i=0;i<_streakSpokes.length;i++){
+    const sp = _streakSpokes[i];
+    const set = STREAK_SETS[sp.set];
+    // NOTE: no .normalize() — the vector must stay proportional to
+    // (fx*tanH, fy*tanV, -1) so that every point on the ray is inside the
+    // frustum (half-width at depth k is k*tanH, and x = k*fx*tanH ≤ k*tanH).
+    _streakV3.set(sp.dir.x*tanH, sp.dir.y*tanV, -1);
+    const head = ((_streakT*(10 + 24*inten)*sp.vel + sp.phase + set.phase) % _STREAK_FAR) + 0.5;
+    const tail = Math.max(0.0, head - segLen);
+    // fade in away from the vanishing point, fade out near the screen edge
+    const fade = THREE.MathUtils.smoothstep(head, 0.5, 2.5)
+               * (1 - THREE.MathUtils.smoothstep(head, _STREAK_FAR*0.72, _STREAK_FAR));
+    const g = inten * fade;
+    const i6 = i*6;
+    streakPos[i6]   = _streakV3.x*tail; streakPos[i6+1] = _streakV3.y*tail; streakPos[i6+2] = _streakV3.z*tail;
+    streakPos[i6+3] = _streakV3.x*head; streakPos[i6+4] = _streakV3.y*head; streakPos[i6+5] = _streakV3.z*head;
+    streakCol[i6]   = 0; streakCol[i6+1] = 0; streakCol[i6+2] = 0;      // dark tail
+    streakCol[i6+3] = g*sp.hue; streakCol[i6+4] = g; streakCol[i6+5] = g; // bright head
+  }
+  streakGeo.attributes.position.needsUpdate = true;
+  streakGeo.attributes.color.needsUpdate = true;
 }
 
 // ---------- strafe side jets (A/D) ------------------------------------------

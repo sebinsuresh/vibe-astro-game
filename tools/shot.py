@@ -199,7 +199,8 @@ def cmd_rec(a):
     p = prepare(a.url_contains, fresh=a.fresh, pre_js=a.pre_js, wait_js=a.wait_js, wait_s=a.wait)
     proc = subprocess.Popen(
         ["ffmpeg", "-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", "30",
-         "-i", "pipe:0", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", a.out])
+         "-i", "pipe:0", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", a.out],
+        stdin=subprocess.PIPE)
     start = time.time()
     frames = 0
     while time.time() - start < a.seconds:
